@@ -34,7 +34,7 @@ INSTALLED_APPS = [
     'apps.products',
     'apps.orders',
     'apps.reviews',
-    
+
 ]
 
 # ── Middleware ────────────────────────────────────────────────────────────────
@@ -172,10 +172,10 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'victoriaaugustineumoh@gmail.com'  # Your Gmail address
-EMAIL_HOST_PASSWORD = 'hdohvuevwtjwnhrr'   # Gmail App Password (not regular password)
+EMAIL_HOST_USER     = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 
-DEFAULT_FROM_EMAIL = 'Luxe Aura <victoriaaugustineumoh@gmail.com>'
+DEFAULT_FROM_EMAIL = 'Softlifee by Beckie <victoriaaugustineumoh@gmail.com>'
 
 
 ADMIN_EMAIL  = env('ADMIN_EMAIL',  default='victoriaaugustineumoh@gmail.com')
