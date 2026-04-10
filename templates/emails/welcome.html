@@ -1,0 +1,30 @@
+{% extends "emails/base.html" %}
+{% block content %}
+
+<h1>Welcome to Soft Lifee, {{ first_name }}! 🎉</h1>
+
+<p>We're so excited to have you join our community. You now have access to our full collection of curated luxury lifestyle products — all handpicked with you in mind.</p>
+
+<div class="divider"></div>
+
+<p><strong style="color:#1A1A2E;">Here's what you can do with your account:</strong></p>
+
+<p>
+  ✦ &nbsp;Shop our full collection of home essentials, skincare &amp; accessories<br/>
+  ✦ &nbsp;Save your favourite products to your wishlist<br/>
+  ✦ &nbsp;Track your orders in real-time<br/>
+  ✦ &nbsp;Manage your delivery addresses<br/>
+  ✦ &nbsp;Leave reviews on products you love
+</p>
+
+<div class="divider"></div>
+
+<div class="center">
+  <a href="{{ shop_url }}" class="btn">Start Shopping →</a>
+</div>
+
+<p class="center small" style="margin-top:16px;">
+  Questions? We're always here — chat us on WhatsApp anytime and we'll respond fast.
+</p>
+
+{% endblock %}

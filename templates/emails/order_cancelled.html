@@ -1,0 +1,32 @@
+{% extends "emails/base.html" %}
+{% block content %}
+
+<h1>Order Cancelled</h1>
+
+<p>Hi <strong style="color:#1A1A2E;">{{ order.customer_name }}</strong>, your order <strong class="highlight">{{ order.order_number }}</strong> has been cancelled.</p>
+
+<div class="info-box">
+  <p><strong>Order Number:</strong> {{ order.order_number }}</p>
+  <p><strong>Total:</strong> &#8358;{{ order.total|floatformat:0 }}</p>
+</div>
+
+<div class="divider"></div>
+
+<p><strong style="color:#1A1A2E;">Refund Information</strong></p>
+<p>If you paid online, your refund will be processed within <strong class="highlight">3–5 business days</strong> back to your original payment method.</p>
+
+<p>For Pay on Delivery orders, no charge was made so no refund is necessary.</p>
+
+<div class="divider"></div>
+
+<p>Changed your mind? Our full collection is still waiting for you — we'd love to have you back.</p>
+
+<div class="center" style="margin-top:24px;">
+  <a href="{{ frontend_url }}/shop" class="btn">Shop Again →</a>
+</div>
+
+<p class="center small" style="margin-top:16px;">
+  Have questions? <a href="https://wa.me/2347019908205" style="color:#25D366; font-weight:600;">Chat us on WhatsApp</a>
+</p>
+
+{% endblock %}

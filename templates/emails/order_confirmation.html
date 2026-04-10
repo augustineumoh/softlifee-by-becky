@@ -1,0 +1,87 @@
+{% extends "emails/base.html" %}
+{% block content %}
+
+<h1>Order Confirmed! ✅</h1>
+
+<p>Hi <strong style="color:#1A1A2E;">{{ order.customer_name }}</strong>, thank you for your order! We've received it and we're preparing everything with care.</p>
+
+<div class="info-box">
+  <p><strong>Order Number:</strong> {{ order.order_number }}</p>
+  <p><strong>Date:</strong> {{ order.created_at|date:"d M Y, g:i A" }}</p>
+  <p><strong>Payment:</strong> <span class="badge">{{ order.get_payment_method_display }}</span></p>
+  <p><strong>Delivering to:</strong> {{ order.delivery_address }}, {{ order.delivery_city }}, {{ order.delivery_state }}</p>
+</div>
+
+<div class="divider"></div>
+
+<p><strong style="color:#1A1A2E;">Items Ordered</strong></p>
+
+<table class="order-table">
+  <thead>
+    <tr>
+      <th>Product</th>
+      <th>Qty</th>
+      <th class="right">Price</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>
+        {{ item.product_name }}
+        {% if item.color_variant %}
+          <br/><span style="font-size:12px; color:#8A4FB1;">{{ item.color_variant }}</span>
+        {% endif %}
+      </td>
+      <td>&times; {{ item.quantity }}</td>
+      <td class="right">&#8358;{{ item.subtotal|floatformat:0 }}</td>
+    </tr>
+    {% endfor %}
+
+    <tr>
+      <td colspan="2" style="color:rgba(26,26,46,0.5); font-size:13px;">Subtotal</td>
+      <td class="right">&#8358;{{ order.subtotal|floatformat:0 }}</td>
+    </tr>
+
+    {% if order.discount_amount %}
+    <tr>
+      <td colspan="2" style="color:#16A34A; font-size:13px;">Discount ({{ order.discount_code }})</td>
+      <td class="right" style="color:#16A34A;">&minus; &#8358;{{ order.discount_amount|floatformat:0 }}</td>
+    </tr>
+    {% endif %}
+
+    <tr>
+      <td colspan="2" style="color:rgba(26,26,46,0.5); font-size:13px;">Delivery</td>
+      <td class="right">
+        {% if order.delivery_fee == 0 %}
+          <span style="color:#16A34A; font-weight:600;">FREE</span>
+        {% else %}
+          &#8358;{{ order.delivery_fee|floatformat:0 }}
+        {% endif %}
+      </td>
+    </tr>
+
+    <tr class="total-row">
+      <td colspan="2">Total Paid</td>
+      <td class="right">&#8358;{{ order.total|floatformat:0 }}</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="divider"></div>
+
+<p>
+  <strong style="color:#1A1A2E;">Estimated Delivery:</strong><br/>
+  Lagos: <span class="highlight">1–2 business days</span><br/>
+  Other states: <span class="highlight">3–5 business days</span>
+</p>
+
+<div class="center" style="margin-top:24px;">
+  <a href="{{ track_url }}" class="btn">Track My Order →</a>
+</div>
+
+<p class="center small" style="margin-top:16px;">
+  Need help? Chat us on <a href="https://wa.me/2347019908205" style="color:#25D366; font-weight:600;">WhatsApp</a> — we respond fast!
+</p>
+
+{% endblock %}

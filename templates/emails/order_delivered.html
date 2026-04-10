@@ -1,0 +1,28 @@
+{% extends "emails/base.html" %}
+{% block content %}
+
+<h1>Your order has arrived! 🎉</h1>
+
+<p>Hi <strong style="color:#1A1A2E;">{{ order.customer_name }}</strong>, your order <strong class="highlight">{{ order.order_number }}</strong> has been delivered. We hope you absolutely love everything!</p>
+
+<div class="divider"></div>
+
+<p><strong style="color:#1A1A2E;">Enjoying your new items?</strong></p>
+<p>We'd love to hear what you think! Leave a review and help other shoppers make great choices. Your feedback means the world to us and to our community. 💜</p>
+
+<div class="center" style="margin-top:24px;">
+  <a href="{{ track_url }}" class="btn">Leave a Review →</a>
+</div>
+
+<div class="divider"></div>
+
+<div class="info-box">
+  <p><strong>Not fully satisfied?</strong></p>
+  <p>Our 7-day hassle-free return policy has you covered. Simply <a href="https://wa.me/2348000000000" style="color:#25D366;">chat us on WhatsApp</a> and we'll make it right.</p>
+</div>
+
+<p class="center small">
+  Thank you for choosing Soft Lifee by Becky. We can't wait to see you again! 🌸
+</p>
+
+{% endblock %}

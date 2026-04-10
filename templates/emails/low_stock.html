@@ -1,0 +1,29 @@
+{% extends "emails/base.html" %}
+{% block content %}
+
+<h1>⚠️ Low Stock Alert</h1>
+
+<p>Hi Becky, the following product is running low on stock and may need restocking soon:</p>
+
+<div class="info-box">
+  <p><strong>Product:</strong> {{ product.name }}</p>
+  <p><strong>Category:</strong> {{ product.category }}</p>
+  <p><strong>Stock Remaining:</strong> <span style="color:#BE123C; font-weight:700;">{{ product.stock_count }} units</span></p>
+  <p><strong>Status:</strong>
+    {% if product.in_stock %}
+      <span style="color:#16A34A; font-weight:600;">Still In Stock</span>
+    {% else %}
+      <span style="color:#BE123C; font-weight:600;">Out of Stock</span>
+    {% endif %}
+  </p>
+</div>
+
+<div class="divider"></div>
+
+<p>Log in to your admin panel to update the stock count or mark the product as out of stock.</p>
+
+<div class="center" style="margin-top:24px;">
+  <a href="{{ admin_url }}" class="btn">Update Stock →</a>
+</div>
+
+{% endblock %}

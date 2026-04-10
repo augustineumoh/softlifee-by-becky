@@ -1,0 +1,30 @@
+{% extends "emails/base.html" %}
+{% block content %}
+
+<h1>Your order is on its way! 🚚</h1>
+
+<p>Hi <strong style="color:#1A1A2E;">{{ order.customer_name }}</strong>, great news — your order has been shipped and is heading to you right now!</p>
+
+<div class="info-box">
+  <p><strong>Order Number:</strong> {{ order.order_number }}</p>
+  <p><strong>Delivering to:</strong> {{ order.delivery_address }}, {{ order.delivery_city }}, {{ order.delivery_state }}</p>
+  <p><strong>Estimated Arrival:</strong> 1–5 business days</p>
+</div>
+
+<div class="divider"></div>
+
+<p>
+  ✦ &nbsp;Keep your phone close — our delivery agent will call before arrival<br/>
+  ✦ &nbsp;Make sure someone is available at the delivery address<br/>
+  ✦ &nbsp;For Pay on Delivery orders, please have the exact amount ready
+</p>
+
+<div class="center" style="margin-top:24px;">
+  <a href="{{ track_url }}" class="btn">View My Order →</a>
+</div>
+
+<p class="center small" style="margin-top:16px;">
+  Questions about your delivery? <a href="https://wa.me/2347019908205" style="color:#25D366; font-weight:600;">Chat us on WhatsApp</a> and we'll sort it out!
+</p>
+
+{% endblock %}
