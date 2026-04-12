@@ -188,3 +188,8 @@ CACHES = {
         'LOCATION': 'softlifee-cache',
     }
 }
+
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
+    'http://localhost:5173',
+    'http://localhost:8000',
+])
