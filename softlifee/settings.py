@@ -2,6 +2,7 @@ from pathlib import Path
 import environ
 import dj_database_url
 from datetime import timedelta
+import os
 
 # ── Base ──────────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -9,15 +10,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(DEBUG=(bool, False))
 environ.Env.read_env(BASE_DIR / '.env')
 
-SECRET_KEY = env('SECRET_KEY')
-DEBUG = env('DEBUG')
-
+SECRET_KEY    = env('SECRET_KEY')
+DEBUG         = env('DEBUG')
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
 
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
+# ── CSRF ──────────────────────────────────────────────────────────────────────
+_csrf_raw = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = [x.strip() for x in _csrf_raw.split(',') if x.strip()] or [
     'http://localhost:5173',
     'http://localhost:8000',
-])
+]
 
 # ── Apps ──────────────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
@@ -40,7 +42,6 @@ INSTALLED_APPS = [
     'apps.products',
     'apps.orders',
     'apps.reviews',
-
 ]
 
 # ── Middleware ────────────────────────────────────────────────────────────────
@@ -57,9 +58,9 @@ MIDDLEWARE = [
     'social_django.middleware.SocialAuthExceptionMiddleware',
 ]
 
-ROOT_URLCONF = 'softlifee.urls'
-WSGI_APPLICATION = 'softlifee.wsgi.application'
-AUTH_USER_MODEL = 'users.User'
+ROOT_URLCONF      = 'softlifee.urls'
+WSGI_APPLICATION  = 'softlifee.wsgi.application'
+AUTH_USER_MODEL   = 'users.User'
 
 # ── Templates ─────────────────────────────────────────────────────────────────
 TEMPLATES = [
@@ -115,18 +116,19 @@ REST_FRAMEWORK = {
 
 # ── JWT ───────────────────────────────────────────────────────────────────────
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME':  timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
-    'ROTATE_REFRESH_TOKENS':  True,
+    'ACCESS_TOKEN_LIFETIME':    timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME':   timedelta(days=30),
+    'ROTATE_REFRESH_TOKENS':    True,
     'BLACKLIST_AFTER_ROTATION': True,
-    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_TYPES':        ('Bearer',),
 }
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
+_cors_raw = os.environ.get('CORS_ALLOWED_ORIGINS', '')
+CORS_ALLOWED_ORIGINS = [x.strip() for x in _cors_raw.split(',') if x.strip()] or [
     'http://localhost:5173',
     'http://localhost:3000',
-])
+]
 CORS_ALLOW_CREDENTIALS = True
 
 # ── Cloudinary ────────────────────────────────────────────────────────────────
@@ -138,14 +140,14 @@ CLOUDINARY_STORAGE = {
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # ── Static & Media ────────────────────────────────────────────────────────────
-STATIC_URL  = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_URL   = '/static/'
+STATIC_ROOT  = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-MEDIA_URL  = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+STATICFILES_DIRS = []
+MEDIA_URL    = '/media/'
 
 # ── Google OAuth ──────────────────────────────────────────────────────────────
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY    = env('GOOGLE_CLIENT_ID',    default='')
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY    = env('GOOGLE_CLIENT_ID',     default='')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env('GOOGLE_CLIENT_SECRET', default='')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE  = ['email', 'profile']
 SOCIAL_AUTH_PIPELINE = (
@@ -167,31 +169,28 @@ PAYSTACK_PUBLIC_KEY = env('PAYSTACK_PUBLIC_KEY', default='')
 # ── Internationalisation ──────────────────────────────────────────────────────
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE     = 'Africa/Lagos'
-USE_I18N = True
-USE_TZ   = True
+USE_I18N      = True
+USE_TZ        = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-# For Gmail SMTP (recommended for development)
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER     = env('EMAIL_HOST_USER', default='')
+# ── Email ─────────────────────────────────────────────────────────────────────
+EMAIL_BACKEND       = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST          = env('EMAIL_HOST',    default='smtp.gmail.com')
+EMAIL_PORT          = env.int('EMAIL_PORT', default=587)
+EMAIL_USE_TLS       = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_HOST_USER     = env('EMAIL_HOST_USER',     default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL  = env('DEFAULT_FROM_EMAIL',  default='Soft Lifee by Becky <noreply@softlifeebybecky.com>')
 
-DEFAULT_FROM_EMAIL = 'Softlifee by Beckie <victoriaaugustineumoh@gmail.com>'
-
-
-ADMIN_EMAIL  = env('ADMIN_EMAIL',  default='victoriaaugustineumoh@gmail.com')
+ADMIN_EMAIL  = env('ADMIN_EMAIL',  default='hello@softlifeebybecky.com')
 BACKEND_URL  = env('BACKEND_URL',  default='http://localhost:8000')
- 
-# Cache (for password reset tokens)
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
+
+# ── Cache ─────────────────────────────────────────────────────────────────────
 CACHES = {
     'default': {
         'BACKEND':  'django.core.cache.backends.locmem.LocMemCache',
         'LOCATION': 'softlifee-cache',
     }
 }
-
