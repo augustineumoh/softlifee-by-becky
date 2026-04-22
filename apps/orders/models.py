@@ -32,7 +32,6 @@ class Order(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True, related_name='orders'
     )
-    # Allow guest checkout — store customer info directly
     customer_name   = models.CharField(max_length=200)
     customer_email  = models.EmailField()
     customer_phone  = models.CharField(max_length=20)
@@ -42,6 +41,10 @@ class Order(models.Model):
     delivery_city    = models.CharField(max_length=100)
     delivery_state   = models.CharField(max_length=100)
     delivery_notes   = models.TextField(blank=True)
+
+    # Discount ← NEW FIELDS
+    discount_code   = models.CharField(max_length=50, blank=True, default='')
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     # Financials
     subtotal        = models.DecimalField(max_digits=12, decimal_places=2)
@@ -58,7 +61,7 @@ class Order(models.Model):
     paystack_txn_id = models.CharField(max_length=200, blank=True)
     paid_at         = models.DateTimeField(null=True, blank=True)
 
-    # Order number (human readable)
+    # Order number
     order_number    = models.CharField(max_length=20, unique=True, blank=True)
 
     created_at      = models.DateTimeField(auto_now_add=True)
@@ -80,12 +83,12 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-    order       = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    product     = models.ForeignKey(
+    order         = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    product       = models.ForeignKey(
         'products.Product', on_delete=models.SET_NULL,
         null=True, related_name='order_items'
     )
-    product_name  = models.CharField(max_length=255)   # snapshot at time of order
+    product_name  = models.CharField(max_length=255)
     product_price = models.DecimalField(max_digits=12, decimal_places=2)
     product_image = models.URLField(blank=True)
     color_variant = models.CharField(max_length=100, blank=True)

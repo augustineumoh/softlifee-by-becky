@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from .models import User, Address
+import cloudinary
 
 
 # ── Register ──────────────────────────────────────────────────────────────────
@@ -40,13 +41,33 @@ class LoginSerializer(serializers.Serializer):
 
 # ── User Profile ──────────────────────────────────────────────────────────────
 class UserSerializer(serializers.ModelSerializer):
-    full_name = serializers.ReadOnlyField()
+    full_name  = serializers.ReadOnlyField()
+    avatar_url = serializers.SerializerMethodField()
 
     class Meta:
         model  = User
         fields = ['id', 'email', 'first_name', 'last_name', 'full_name',
-                  'phone', 'avatar', 'date_joined']
+                  'phone', 'avatar', 'avatar_url', 'date_joined']
         read_only_fields = ['id', 'email', 'date_joined']
+
+    def get_avatar_url(self, obj):
+        """Return optimized Cloudinary URL for avatar."""
+        if not obj.avatar:
+            return None
+        try:
+            # Build optimized Cloudinary URL
+            url = cloudinary.CloudinaryImage(str(obj.avatar)).build_url(
+                width=200, height=200,
+                crop='fill', gravity='face',
+                fetch_format='auto', quality='auto',
+            )
+            return url
+        except Exception:
+            # Fallback to raw URL
+            try:
+                return obj.avatar.url
+            except Exception:
+                return None
 
 
 # ── Change Password ───────────────────────────────────────────────────────────
