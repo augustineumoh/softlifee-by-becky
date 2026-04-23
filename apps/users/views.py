@@ -39,7 +39,7 @@ class LoginView(APIView):
 
     @rate_limit(key='login', limit=5, period=300)
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
+        serializer = LoginSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             user   = serializer.validated_data['user']
             tokens = get_tokens_for_user(user)
