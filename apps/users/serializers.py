@@ -57,6 +57,7 @@ class LoginSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     full_name      = serializers.ReadOnlyField()
     avatar_url     = serializers.SerializerMethodField()
+    avatar         = serializers.SerializerMethodField()   # override — never return /media/ paths
     referral_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -69,24 +70,30 @@ class UserSerializer(serializers.ModelSerializer):
     def get_referral_count(self, obj):
         return obj.referrals_given.count()
 
-    def get_avatar_url(self, obj):
-        """Return optimized Cloudinary URL for avatar."""
+    def _cloudinary_avatar_url(self, obj):
+        """Build a Cloudinary URL for the avatar, or return None for unresolvable paths."""
         if not obj.avatar:
             return None
+        raw = str(obj.avatar)
+        if not raw:
+            return None
+        # If it's already a full URL (e.g. Google OAuth picture), return as-is
+        if raw.startswith('http://') or raw.startswith('https://'):
+            return raw
         try:
-            # Build optimized Cloudinary URL
-            url = cloudinary.CloudinaryImage(str(obj.avatar)).build_url(
+            return cloudinary.CloudinaryImage(raw).build_url(
                 width=200, height=200,
                 crop='fill', gravity='face',
                 fetch_format='auto', quality='auto',
             )
-            return url
         except Exception:
-            # Fallback to raw URL
-            try:
-                return obj.avatar.url
-            except Exception:
-                return None
+            return None
+
+    def get_avatar(self, obj):
+        return self._cloudinary_avatar_url(obj)
+
+    def get_avatar_url(self, obj):
+        return self._cloudinary_avatar_url(obj)
 
 
 # ── Change Password ───────────────────────────────────────────────────────────
