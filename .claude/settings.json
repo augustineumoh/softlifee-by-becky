@@ -1,7 +1,45 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs ls *)"
+      "Bash(xargs ls *)",
+      "Bash(venv/Scripts/python.exe -c ' *)",
+      "Bash(venv/Scripts/python.exe manage.py makemigrations --check --dry-run)",
+      "Bash(venv/Scripts/python.exe manage.py makemigrations)",
+      "Bash(venv/Scripts/python.exe manage.py makemigrations cart)",
+      "Bash(venv/Scripts/python.exe manage.py migrate)",
+      "Bash(venv/Scripts/python.exe manage.py check)",
+      "Read(//c/Users/victo/desktop/**)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(cmd /c \"cd /d c:\\\\Users\\\\victo\\\\desktop\\\\soft-lifee-frontend && node_modules\\\\.bin\\\\tsc.cmd --noEmit 2>&1\")",
+      "Bash(python manage.py makemigrations orders --name=\"orderitem_size_variant\")",
+      "Bash(python manage.py migrate)",
+      "Bash(cmd /c \"cd C:\\\\Users\\\\victo\\\\desktop\\\\soft-lifee-frontend && npx tsc --noEmit 2>&1\")",
+      "Bash(cmd /c \"pushd C:\\\\Users\\\\victo\\\\desktop\\\\soft-lifee-frontend && npx tsc --noEmit 2>&1 && popd\")",
+      "Bash(cmd /c \"cd /d C:\\\\Users\\\\victo\\\\desktop\\\\soft-lifee-frontend && node_modules\\\\.bin\\\\tsc --noEmit 2>&1\")",
+      "PowerShell(cmd /c \"cd /d C:\\\\Users\\\\victo\\\\desktop\\\\soft-lifee-frontend && node_modules\\\\.bin\\\\tsc.cmd --noEmit 2>&1\")",
+      "Bash(python manage.py check)",
+      "Bash(python manage.py seed_products)",
+      "Bash(git -C \"c:/Users/victo/desktop/softlifee-backend\" status)",
+      "Bash(git -C \"c:/Users/victo/desktop/softlifee-backend\" remote -v)",
+      "Bash(git -C \"c:/Users/victo/desktop/soft-lifee-frontend\" status)",
+      "Bash(git -C \"c:/Users/victo/desktop/soft-lifee-frontend\" remote -v)",
+      "Bash(git -C \"c:/Users/victo/desktop/softlifee-backend\" diff --stat HEAD)",
+      "Bash(git -C \"c:/Users/victo/desktop/soft-lifee-frontend\" diff --name-only HEAD)",
+      "Bash(git -C c:/Users/victo/desktop/softlifee-backend add apps/orders/models.py apps/orders/serializers.py apps/orders/urls.py apps/orders/views.py apps/orders/return_serializers.py apps/orders/return_views.py apps/orders/migrations/0004_returnrequest_returnitem.py apps/orders/migrations/0005_orderitem_size_variant.py apps/products/models.py apps/products/serializers.py apps/products/urls.py apps/products/views.py apps/products/admin_serializers.py apps/products/admin_views.py apps/products/management/ apps/products/migrations/0002_product_sale_end_product_sale_price_and_more.py apps/users/models.py apps/users/serializers.py apps/users/urls.py apps/users/views.py apps/users/migrations/0002_user_referral_code_referraluse.py apps/cart/ apps/core/throttles.py softlifee/settings.py softlifee/urls.py)",
+      "Bash(git -C c:/Users/victo/desktop/softlifee-backend commit -m ' *)",
+      "Bash(git -C \"c:/Users/victo/desktop/softlifee-backend\" push origin master)",
+      "Bash(git -C c:/Users/victo/desktop/soft-lifee-frontend add src/pages/productPage.tsx src/pages/newArrivalsPage.tsx src/services/api.ts src/store/authStore.ts)",
+      "Bash(git -C c:/Users/victo/desktop/soft-lifee-frontend commit -m ' *)",
+      "Bash(git -C \"c:/Users/victo/desktop/soft-lifee-frontend\" push origin master)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git -C \"c:\\\\Users\\\\victo\\\\desktop\\\\soft-lifee-frontend\" status)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\victo\\desktop\\soft-lifee-frontend\\src\\services",
+      "c:\\Users\\victo\\desktop\\soft-lifee-frontend\\src\\store",
+      "c:\\Users\\victo\\desktop\\soft-lifee-frontend\\src\\pages"
     ]
   }
 }
