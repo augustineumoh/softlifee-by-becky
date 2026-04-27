@@ -5,6 +5,10 @@ from .analytics import (
     SalesSummaryView, RevenueChartView, TopProductsView,
     OrderStatusBreakdownView, LowStockView, RecentOrdersView
 )
+from .return_views import (
+    CreateReturnRequestView, MyReturnRequestsView, ReturnRequestDetailView,
+    AdminReturnListView, AdminReturnUpdateView,
+)
 
 urlpatterns = [
     # Orders
@@ -18,6 +22,13 @@ urlpatterns = [
 
     # Discount codes
     path('discount/validate/',      ValidateDiscountCodeView.as_view(),    name='discount-validate'),
+
+    # Returns & Refunds
+    path('returns/',                CreateReturnRequestView.as_view(),     name='return-create'),
+    path('returns/my-returns/',     MyReturnRequestsView.as_view(),        name='return-list'),
+    path('returns/<int:pk>/',       ReturnRequestDetailView.as_view(),     name='return-detail'),
+    path('returns/admin/',          AdminReturnListView.as_view(),         name='admin-return-list'),
+    path('returns/admin/<int:pk>/', AdminReturnUpdateView.as_view(),       name='admin-return-update'),
 
     # Analytics (admin only)
     path('analytics/summary/',      SalesSummaryView.as_view(),            name='analytics-summary'),

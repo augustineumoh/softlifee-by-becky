@@ -69,6 +69,19 @@ class ProductListView(generics.ListAPIView):
         if in_stock == 'true':
             qs = qs.filter(in_stock=True)
 
+        # Filter on-sale products
+        on_sale = self.request.query_params.get('on_sale')
+        if on_sale == 'true':
+            from django.utils import timezone
+            now = timezone.now()
+            qs = qs.filter(
+                sale_price__isnull=False
+            ).filter(
+                Q(sale_start__isnull=True) | Q(sale_start__lte=now)
+            ).filter(
+                Q(sale_end__isnull=True) | Q(sale_end__gte=now)
+            )
+
         return qs
 
 
@@ -81,7 +94,7 @@ class ProductDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         return Product.objects.filter(is_active=True).select_related(
             'category', 'subcategory'
-        ).prefetch_related('images', 'color_variants', 'videos')
+        ).prefetch_related('images', 'color_variants', 'size_variants', 'videos')
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()

@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from apps.products.models import Product
+from apps.core.throttles import CheckoutThrottle
 from .models import Order, OrderItem
 from .serializers import OrderCreateSerializer, OrderSerializer
 
@@ -38,6 +39,7 @@ def get_delivery_fee(state: str, subtotal: Decimal) -> Decimal:
 # ── Create Order ──────────────────────────────────────────────────────────────
 class CreateOrderView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes   = [CheckoutThrottle]
 
     def post(self, request):
         serializer = OrderCreateSerializer(data=request.data)
@@ -78,6 +80,7 @@ class CreateOrderView(APIView):
                 'product_price': product.price,
                 'product_image': img_url,
                 'color_variant': item_data.get('color_variant', ''),
+                'size_variant':  item_data.get('size_variant', ''),
                 'quantity':      item_data['quantity'],
                 'subtotal':      item_subtotal,
             })

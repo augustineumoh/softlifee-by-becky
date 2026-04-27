@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+import random
+import string
 
 
 class UserManager(BaseUserManager):
@@ -19,15 +21,16 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    email       = models.EmailField(unique=True)
-    first_name  = models.CharField(max_length=100)
-    last_name   = models.CharField(max_length=100, blank=True)
-    phone       = models.CharField(max_length=20, blank=True)
-    avatar      = models.ImageField(upload_to='avatars/', blank=True, null=True)
-    is_active   = models.BooleanField(default=True)
-    is_staff    = models.BooleanField(default=False)
-    date_joined = models.DateTimeField(auto_now_add=True)
-    updated_at  = models.DateTimeField(auto_now=True)
+    email         = models.EmailField(unique=True)
+    first_name    = models.CharField(max_length=100)
+    last_name     = models.CharField(max_length=100, blank=True)
+    phone         = models.CharField(max_length=20, blank=True)
+    avatar        = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    referral_code = models.CharField(max_length=12, unique=True, blank=True)
+    is_active     = models.BooleanField(default=True)
+    is_staff      = models.BooleanField(default=False)
+    date_joined   = models.DateTimeField(auto_now_add=True)
+    updated_at    = models.DateTimeField(auto_now=True)
 
     objects  = UserManager()
     USERNAME_FIELD  = 'email'
@@ -39,6 +42,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+    def save(self, *args, **kwargs):
+        if not self.referral_code:
+            while True:
+                code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+                if not User.objects.filter(referral_code=code).exists():
+                    self.referral_code = code
+                    break
+        super().save(*args, **kwargs)
 
     @property
     def full_name(self):
@@ -68,3 +80,15 @@ class Address(models.Model):
         if self.is_default:
             Address.objects.filter(user=self.user, is_default=True).exclude(pk=self.pk).update(is_default=False)
         super().save(*args, **kwargs)
+
+
+class ReferralUse(models.Model):
+    referrer   = models.ForeignKey(User, on_delete=models.CASCADE, related_name='referrals_given')
+    referred   = models.OneToOneField(User, on_delete=models.CASCADE, related_name='referral_source')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.referrer.email} → {self.referred.email}'

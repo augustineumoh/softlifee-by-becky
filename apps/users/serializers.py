@@ -1,27 +1,40 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
-from .models import User, Address
+from .models import User, Address, ReferralUse
 import cloudinary
 
 
 # ── Register ──────────────────────────────────────────────────────────────────
 class RegisterSerializer(serializers.ModelSerializer):
-    password  = serializers.CharField(write_only=True, min_length=8)
-    password2 = serializers.CharField(write_only=True)
+    password      = serializers.CharField(write_only=True, min_length=8)
+    password2     = serializers.CharField(write_only=True)
+    referral_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model  = User
-        fields = ['first_name', 'last_name', 'email', 'phone', 'password', 'password2']
+        fields = ['first_name', 'last_name', 'email', 'phone', 'password', 'password2', 'referral_code']
 
     def validate(self, data):
         if data['password'] != data['password2']:
             raise serializers.ValidationError({'password': 'Passwords do not match.'})
+        code = data.get('referral_code', '').strip().upper()
+        if code:
+            if not User.objects.filter(referral_code=code).exists():
+                raise serializers.ValidationError({'referral_code': 'Invalid referral code.'})
         return data
 
     def create(self, validated_data):
         validated_data.pop('password2')
-        return User.objects.create_user(**validated_data)
+        referral_code = validated_data.pop('referral_code', '').strip().upper()
+        user = User.objects.create_user(**validated_data)
+        if referral_code:
+            try:
+                referrer = User.objects.get(referral_code=referral_code)
+                ReferralUse.objects.create(referrer=referrer, referred=user)
+            except User.DoesNotExist:
+                pass
+        return user
 
 
 # ── Login ─────────────────────────────────────────────────────────────────────
@@ -42,14 +55,19 @@ class LoginSerializer(serializers.Serializer):
 
 # ── User Profile ──────────────────────────────────────────────────────────────
 class UserSerializer(serializers.ModelSerializer):
-    full_name  = serializers.ReadOnlyField()
-    avatar_url = serializers.SerializerMethodField()
+    full_name      = serializers.ReadOnlyField()
+    avatar_url     = serializers.SerializerMethodField()
+    referral_count = serializers.SerializerMethodField()
 
     class Meta:
         model  = User
         fields = ['id', 'email', 'first_name', 'last_name', 'full_name',
-                  'phone', 'avatar', 'avatar_url', 'date_joined']
-        read_only_fields = ['id', 'email', 'date_joined']
+                  'phone', 'avatar', 'avatar_url', 'referral_code',
+                  'referral_count', 'date_joined']
+        read_only_fields = ['id', 'email', 'referral_code', 'date_joined']
+
+    def get_referral_count(self, obj):
+        return obj.referrals_given.count()
 
     def get_avatar_url(self, obj):
         """Return optimized Cloudinary URL for avatar."""

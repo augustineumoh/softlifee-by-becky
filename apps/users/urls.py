@@ -23,4 +23,7 @@ urlpatterns = [
     # Addresses
     path('addresses/',           views.AddressListCreateView.as_view(), name='address-list'),
     path('addresses/<int:pk>/',  views.AddressDetailView.as_view(),    name='address-detail'),
+
+    # Referrals
+    path('referrals/',           views.ReferralInfoView.as_view(),      name='referral-info'),
 ]

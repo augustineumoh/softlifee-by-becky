@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from cloudinary.models import CloudinaryField
 
 
@@ -52,6 +53,9 @@ class Product(models.Model):
     description  = models.TextField()
     details      = models.JSONField(default=list, blank=True)   # list of bullet points
     price        = models.DecimalField(max_digits=12, decimal_places=2)
+    sale_price   = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    sale_start   = models.DateTimeField(null=True, blank=True)
+    sale_end     = models.DateTimeField(null=True, blank=True)
     badge        = models.CharField(max_length=20, choices=BADGE_CHOICES, blank=True)
     is_active    = models.BooleanField(default=True)
     in_stock     = models.BooleanField(default=True)
@@ -72,6 +76,27 @@ class Product(models.Model):
     def is_new(self):
         from datetime import date, timedelta
         return (date.today() - self.added_date).days <= 21
+
+    @property
+    def is_on_sale(self):
+        if not self.sale_price:
+            return False
+        now = timezone.now()
+        if self.sale_start and now < self.sale_start:
+            return False
+        if self.sale_end and now > self.sale_end:
+            return False
+        return True
+
+    @property
+    def active_price(self):
+        return self.sale_price if self.is_on_sale else self.price
+
+    @property
+    def discount_percent(self):
+        if self.is_on_sale and self.sale_price and self.price > 0:
+            return round(((self.price - self.sale_price) / self.price) * 100)
+        return 0
 
     def update_rating(self):
         from apps.reviews.models import Review
@@ -154,3 +179,25 @@ class RecentlyViewed(models.Model):
 
     def __str__(self):
         return f'{self.user.email} → {self.product.name}'
+
+
+class SizeVariant(models.Model):
+    SIZE_TYPE_CHOICES = [
+        ('clothing', 'Clothing'),
+        ('shoes',    'Shoes'),
+        ('numeric',  'Numeric'),
+    ]
+
+    product     = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='size_variants')
+    label       = models.CharField(max_length=20)      # XS, S, M, L, XL or UK6, UK7, etc.
+    size_type   = models.CharField(max_length=20, choices=SIZE_TYPE_CHOICES, default='clothing')
+    stock_count = models.PositiveIntegerField(default=0)
+    in_stock    = models.BooleanField(default=True)
+    order       = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering        = ['order', 'label']
+        unique_together = ['product', 'label']
+
+    def __str__(self):
+        return f'{self.product.name} — Size {self.label}'

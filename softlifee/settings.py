@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'apps.products',
     'apps.orders',
     'apps.reviews',
+    'apps.cart',
 ]
 
 # ── Middleware ────────────────────────────────────────────────────────────────
@@ -112,6 +113,18 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon':           '200/day',
+        'user':           '2000/day',
+        'register':       '5/hour',
+        'login':          '10/min',
+        'checkout':       '30/hour',
+        'return_request': '10/hour',
+    },
 }
 
 # ── JWT ───────────────────────────────────────────────────────────────────────

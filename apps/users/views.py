@@ -5,9 +5,10 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 
-from .models import User, Address
+from .models import User, Address, ReferralUse
 from apps.core.emails import send_welcome_email
 from apps.core.rate_limit import rate_limit
+from apps.core.throttles import RegisterThrottle, LoginThrottle
 from .serializers import (
     RegisterSerializer, LoginSerializer, UserSerializer,
     ChangePasswordSerializer, AddressSerializer, get_tokens_for_user
@@ -17,6 +18,7 @@ from .serializers import (
 # ── Register ──────────────────────────────────────────────────────────────────
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes   = [RegisterThrottle]
 
     @rate_limit(key='register', limit=3, period=3600)
     def post(self, request):
@@ -36,6 +38,7 @@ class RegisterView(APIView):
 # ── Login ─────────────────────────────────────────────────────────────────────
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes   = [LoginThrottle]
 
     @rate_limit(key='login', limit=5, period=300)
     def post(self, request):
@@ -123,6 +126,29 @@ class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def patch(self, request, *args, **kwargs):
         return self.partial_update(request, *args, **kwargs)
+
+
+# ── Referral info ─────────────────────────────────────────────────────────────
+class ReferralInfoView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user     = request.user
+        referrals = ReferralUse.objects.filter(referrer=user).select_related('referred')
+        referred_users = [
+            {
+                'email':      r.referred.email,
+                'first_name': r.referred.first_name,
+                'joined_at':  r.created_at,
+            }
+            for r in referrals
+        ]
+        return Response({
+            'referral_code':  user.referral_code,
+            'referral_link':  f"{request.build_absolute_uri('/')[:-1]}/register?ref={user.referral_code}",
+            'total_referrals': len(referred_users),
+            'referred_users': referred_users,
+        })
 
 
 # ── Google OAuth callback ─────────────────────────────────────────────────────

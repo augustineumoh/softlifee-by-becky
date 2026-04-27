@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     Category, Subcategory, Product, ProductImage,
-    ColorVariant, ProductVideo, Wishlist, RecentlyViewed
+    ColorVariant, ProductVideo, Wishlist, RecentlyViewed, SizeVariant
 )
 
 
@@ -37,19 +37,31 @@ class ProductVideoSerializer(serializers.ModelSerializer):
         fields = ['id', 'video_url', 'poster', 'order']
 
 
+class SizeVariantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = SizeVariant
+        fields = ['id', 'label', 'size_type', 'in_stock', 'stock_count', 'order']
+
+
 # ── Product list (lightweight) ────────────────────────────────────────────────
 class ProductListSerializer(serializers.ModelSerializer):
-    category    = serializers.StringRelatedField()
-    subcategory = serializers.StringRelatedField()
-    primary_image = serializers.SerializerMethodField()
-    badge_display = serializers.CharField(source='get_badge_display', read_only=True)
-    is_new        = serializers.ReadOnlyField()
+    category         = serializers.StringRelatedField()
+    subcategory      = serializers.StringRelatedField()
+    primary_image    = serializers.SerializerMethodField()
+    badge_display    = serializers.CharField(source='get_badge_display', read_only=True)
+    is_new           = serializers.ReadOnlyField()
+    is_on_sale       = serializers.ReadOnlyField()
+    active_price     = serializers.ReadOnlyField()
+    discount_percent = serializers.ReadOnlyField()
+    sale_end         = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model  = Product
         fields = [
             'id', 'name', 'slug', 'category', 'subcategory',
-            'price', 'badge', 'badge_display', 'primary_image',
+            'price', 'sale_price', 'active_price', 'is_on_sale',
+            'discount_percent', 'sale_end',
+            'badge', 'badge_display', 'primary_image',
             'rating', 'review_count', 'in_stock', 'is_new',
         ]
 
@@ -62,21 +74,27 @@ class ProductListSerializer(serializers.ModelSerializer):
 
 # ── Product detail (full) ─────────────────────────────────────────────────────
 class ProductDetailSerializer(serializers.ModelSerializer):
-    category      = CategorySerializer(read_only=True)
-    subcategory   = SubcategorySerializer(read_only=True)
-    images        = ProductImageSerializer(many=True, read_only=True)
-    color_variants = ColorVariantSerializer(many=True, read_only=True)
-    videos        = ProductVideoSerializer(many=True, read_only=True)
-    badge_display = serializers.CharField(source='get_badge_display', read_only=True)
-    is_new        = serializers.ReadOnlyField()
-    is_wishlisted = serializers.SerializerMethodField()
+    category         = CategorySerializer(read_only=True)
+    subcategory      = SubcategorySerializer(read_only=True)
+    images           = ProductImageSerializer(many=True, read_only=True)
+    color_variants   = ColorVariantSerializer(many=True, read_only=True)
+    size_variants    = SizeVariantSerializer(many=True, read_only=True)
+    videos           = ProductVideoSerializer(many=True, read_only=True)
+    badge_display    = serializers.CharField(source='get_badge_display', read_only=True)
+    is_new           = serializers.ReadOnlyField()
+    is_on_sale       = serializers.ReadOnlyField()
+    active_price     = serializers.ReadOnlyField()
+    discount_percent = serializers.ReadOnlyField()
+    is_wishlisted    = serializers.SerializerMethodField()
 
     class Meta:
         model  = Product
         fields = [
             'id', 'name', 'slug', 'category', 'subcategory',
-            'description', 'details', 'price', 'badge', 'badge_display',
-            'images', 'color_variants', 'videos',
+            'description', 'details', 'price', 'sale_price', 'sale_start', 'sale_end',
+            'active_price', 'is_on_sale', 'discount_percent',
+            'badge', 'badge_display',
+            'images', 'color_variants', 'size_variants', 'videos',
             'rating', 'review_count', 'in_stock', 'stock_count',
             'is_new', 'is_wishlisted', 'added_date',
         ]

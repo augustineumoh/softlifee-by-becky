@@ -7,7 +7,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         model  = OrderItem
         fields = [
             'id', 'product', 'product_name', 'product_price',
-            'product_image', 'color_variant', 'quantity', 'subtotal'
+            'product_image', 'color_variant', 'size_variant', 'quantity', 'subtotal'
         ]
         read_only_fields = ['subtotal']
 
@@ -16,6 +16,7 @@ class OrderItemCreateSerializer(serializers.Serializer):
     product_id    = serializers.IntegerField()
     quantity      = serializers.IntegerField(min_value=1)
     color_variant = serializers.CharField(required=False, allow_blank=True)
+    size_variant  = serializers.CharField(required=False, allow_blank=True)
 
 
 class OrderCreateSerializer(serializers.Serializer):

@@ -92,6 +92,7 @@ class OrderItem(models.Model):
     product_price = models.DecimalField(max_digits=12, decimal_places=2)
     product_image = models.URLField(blank=True)
     color_variant = models.CharField(max_length=100, blank=True)
+    size_variant  = models.CharField(max_length=50, blank=True)
     quantity      = models.PositiveIntegerField(default=1)
     subtotal      = models.DecimalField(max_digits=12, decimal_places=2)
 
@@ -101,3 +102,53 @@ class OrderItem(models.Model):
     def save(self, *args, **kwargs):
         self.subtotal = self.product_price * self.quantity
         super().save(*args, **kwargs)
+
+
+class ReturnRequest(models.Model):
+    REASON_CHOICES = [
+        ('wrong_item',   'Received Wrong Item'),
+        ('damaged',      'Item Damaged / Defective'),
+        ('not_as_desc',  'Not as Described'),
+        ('changed_mind', 'Changed My Mind'),
+        ('other',        'Other'),
+    ]
+    STATUS_CHOICES = [
+        ('pending',   'Pending Review'),
+        ('approved',  'Approved'),
+        ('rejected',  'Rejected'),
+        ('completed', 'Completed'),
+    ]
+
+    order         = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='return_requests')
+    user          = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='return_requests'
+    )
+    reason        = models.CharField(max_length=20, choices=REASON_CHOICES)
+    description   = models.TextField()
+    status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    admin_notes   = models.TextField(blank=True)
+    refund_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    return_number = models.CharField(max_length=20, unique=True, blank=True)
+    created_at    = models.DateTimeField(auto_now_add=True)
+    updated_at    = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Return {self.return_number} — {self.order.order_number}'
+
+    def save(self, *args, **kwargs):
+        if not self.return_number:
+            import random, string
+            self.return_number = 'RET-' + ''.join(random.choices(string.digits, k=8))
+        super().save(*args, **kwargs)
+
+
+class ReturnItem(models.Model):
+    return_request = models.ForeignKey(ReturnRequest, on_delete=models.CASCADE, related_name='items')
+    order_item     = models.ForeignKey(OrderItem, on_delete=models.CASCADE, related_name='return_items')
+    quantity       = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return f'{self.order_item.product_name} × {self.quantity}'
