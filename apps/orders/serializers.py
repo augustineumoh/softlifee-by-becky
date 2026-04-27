@@ -33,6 +33,9 @@ class OrderCreateSerializer(serializers.Serializer):
     # Payment
     payment_method = serializers.ChoiceField(choices=['card', 'transfer', 'ussd', 'pod'])
 
+    # Discount
+    discount_code = serializers.CharField(required=False, allow_blank=True, default='')
+
     # Items
     items = OrderItemCreateSerializer(many=True)
 
@@ -54,8 +57,8 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'order_number', 'customer_name', 'customer_email',
             'customer_phone', 'delivery_address', 'delivery_city',
-            'delivery_state', 'delivery_notes', 'subtotal', 'delivery_fee',
-            'total', 'status', 'status_display', 'payment_method',
-            'payment_status', 'payment_status_display', 'paystack_ref',
-            'paid_at', 'items', 'created_at',
+            'delivery_state', 'delivery_notes', 'subtotal', 'discount_code',
+            'discount_amount', 'delivery_fee', 'total', 'status', 'status_display',
+            'payment_method', 'payment_status', 'payment_status_display',
+            'paystack_ref', 'paid_at', 'items', 'created_at',
         ]

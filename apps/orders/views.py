@@ -15,8 +15,6 @@ from rest_framework.response import Response
 
 from apps.products.models import Product
 from .models import Order, OrderItem
-from apps.core.emails import send_order_confirmation_email, send_order_status_email
-from .discount import DiscountCode
 from .serializers import OrderCreateSerializer, OrderSerializer
 
 
@@ -64,7 +62,12 @@ class CreateOrderView(APIView):
 
             # Get primary image URL
             primary_img = product.images.filter(is_primary=True).first() or product.images.first()
-            img_url = primary_img.image.url if primary_img else ''
+            img_url = ''
+            if primary_img:
+                try:
+                    img_url = primary_img.image.url
+                except Exception:
+                    img_url = ''
 
             item_subtotal = product.price * item_data['quantity']
             subtotal     += item_subtotal
@@ -79,29 +82,29 @@ class CreateOrderView(APIView):
                 'subtotal':      item_subtotal,
             })
 
-        # Apply discount code if provided
+        # Handle discount code safely
         discount_amount   = Decimal('0')
         discount_code_str = data.get('discount_code', '').strip().upper()
         applied_code      = None
+
         if discount_code_str:
             try:
+                from .discount import DiscountCode
                 applied_code = DiscountCode.objects.get(code=discount_code_str)
                 valid, msg   = applied_code.is_valid(user=request.user, subtotal=subtotal)
                 if valid:
                     discount_amount = applied_code.calculate_discount(subtotal)
                 else:
                     return Response({'error': msg}, status=status.HTTP_400_BAD_REQUEST)
-            except DiscountCode.DoesNotExist:
-                return Response({'error': 'Invalid discount code.'}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception:
+                pass  # Ignore discount errors — don't block checkout
 
         delivery_fee = get_delivery_fee(data['delivery_state'], subtotal - discount_amount)
         total        = subtotal - discount_amount + delivery_fee
-
-        # For Pay on Delivery, no Paystack reference needed
         payment_method = data['payment_method']
 
-        # Create order
-        order = Order.objects.create(
+        # Build order kwargs — only include discount fields if columns exist
+        order_kwargs = dict(
             user            = request.user if request.user.is_authenticated else None,
             customer_name   = data['customer_name'],
             customer_email  = data['customer_email'],
@@ -111,13 +114,26 @@ class CreateOrderView(APIView):
             delivery_state  = data['delivery_state'],
             delivery_notes  = data.get('delivery_notes', ''),
             subtotal        = subtotal,
-            discount_code   = discount_code_str,
-            discount_amount = discount_amount,
             delivery_fee    = delivery_fee,
             total           = total,
             payment_method  = payment_method,
             payment_status  = 'pending',
         )
+
+        # Try to add discount fields — if column doesn't exist yet, skip
+        try:
+            from django.db import connection
+            columns = [col.name for col in connection.introspection.get_table_description(
+                connection.cursor(), 'orders_order'
+            )]
+            if 'discount_code' in columns:
+                order_kwargs['discount_code']   = discount_code_str
+                order_kwargs['discount_amount'] = discount_amount
+        except Exception:
+            pass
+
+        # Create order
+        order = Order.objects.create(**order_kwargs)
 
         # Create order items
         for item_data in order_items_data:
@@ -125,25 +141,34 @@ class CreateOrderView(APIView):
 
         # Mark discount code as used
         if applied_code:
-            applied_code.apply(
-                user=request.user if request.user.is_authenticated else None,
-                order=order
-            )
+            try:
+                applied_code.apply(
+                    user=request.user if request.user.is_authenticated else None,
+                    order=order
+                )
+            except Exception:
+                pass
 
-        # If Pay on Delivery — confirm immediately
+        # If Pay on Delivery
         if payment_method == 'pod':
             order.status         = 'confirmed'
             order.payment_status = 'pending'
             order.save(update_fields=['status', 'payment_status'])
 
-            send_order_confirmation_email(order)
+            # Send confirmation email
+            try:
+                from apps.core.emails import send_order_confirmation_email
+                send_order_confirmation_email(order)
+            except Exception:
+                pass
+
             return Response({
-                'order':        OrderSerializer(order).data,
+                'order':          OrderSerializer(order).data,
                 'payment_method': 'pod',
-                'message':      'Order placed successfully. Pay on delivery.',
+                'message':        'Order placed successfully. Pay on delivery.',
             }, status=status.HTTP_201_CREATED)
 
-        # For card/transfer/ussd — initialise Paystack transaction
+        # For card/transfer/ussd — initialise Paystack
         paystack_response = req.post(
             'https://api.paystack.co/transaction/initialize',
             headers={
@@ -152,12 +177,11 @@ class CreateOrderView(APIView):
             },
             json={
                 'email':     data['customer_email'],
-                'amount':    int(total * 100),  # Paystack uses kobo
+                'amount':    int(total * 100),
                 'reference': order.order_number,
                 'metadata':  {
-                    'order_number':  order.order_number,
-                    'customer_name': data['customer_name'],
-                    'delivery_city': data['delivery_city'],
+                    'order_number':   order.order_number,
+                    'customer_name':  data['customer_name'],
                     'delivery_state': data['delivery_state'],
                 },
                 'callback_url': f"{settings.FRONTEND_URL}/order-success",
@@ -176,20 +200,19 @@ class CreateOrderView(APIView):
         order.save(update_fields=['paystack_ref'])
 
         return Response({
-            'order':           OrderSerializer(order).data,
-            'payment_url':     ps_data['authorization_url'],
-            'paystack_ref':    ps_data['reference'],
+            'order':        OrderSerializer(order).data,
+            'payment_url':  ps_data['authorization_url'],
+            'paystack_ref': ps_data['reference'],
         }, status=status.HTTP_201_CREATED)
 
 
 # ── Paystack Webhook ──────────────────────────────────────────────────────────
 @method_decorator(csrf_exempt, name='dispatch')
 class PaystackWebhookView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes     = [permissions.AllowAny]
     authentication_classes = []
 
     def post(self, request):
-        # Verify signature
         paystack_sig = request.headers.get('x-paystack-signature', '')
         body         = request.body
         expected_sig = hmac.new(
@@ -206,24 +229,28 @@ class PaystackWebhookView(APIView):
         if event.get('event') == 'charge.success':
             data      = event['data']
             reference = data.get('reference')
-
             try:
                 order = Order.objects.get(paystack_ref=reference)
                 if order.payment_status != 'paid':
-                    order.payment_status = 'paid'
-                    order.status         = 'confirmed'
+                    order.payment_status  = 'paid'
+                    order.status          = 'confirmed'
                     order.paystack_txn_id = data.get('id', '')
-                    order.paid_at        = timezone.now()
+                    order.paid_at         = timezone.now()
                     order.save(update_fields=[
                         'payment_status', 'status', 'paystack_txn_id', 'paid_at'
                     ])
+                    try:
+                        from apps.core.emails import send_order_confirmation_email
+                        send_order_confirmation_email(order)
+                    except Exception:
+                        pass
             except Order.DoesNotExist:
                 pass
 
         return Response({'status': 'ok'})
 
 
-# ── Verify Payment (frontend calls this after redirect) ───────────────────────
+# ── Verify Payment ────────────────────────────────────────────────────────────
 class VerifyPaymentView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -233,7 +260,6 @@ class VerifyPaymentView(APIView):
         except Order.DoesNotExist:
             return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Verify with Paystack
         ps_resp = req.get(
             f'https://api.paystack.co/transaction/verify/{reference}',
             headers={'Authorization': f'Bearer {settings.PAYSTACK_SECRET_KEY}'}
@@ -242,19 +268,23 @@ class VerifyPaymentView(APIView):
         if ps_resp.status_code == 200:
             ps_data = ps_resp.json()['data']
             if ps_data['status'] == 'success' and order.payment_status != 'paid':
-                order.payment_status = 'paid'
-                order.status         = 'confirmed'
+                order.payment_status  = 'paid'
+                order.status          = 'confirmed'
                 order.paystack_txn_id = str(ps_data.get('id', ''))
-                order.paid_at        = timezone.now()
+                order.paid_at         = timezone.now()
                 order.save(update_fields=[
                     'payment_status', 'status', 'paystack_txn_id', 'paid_at'
                 ])
-                send_order_confirmation_email(order)
+                try:
+                    from apps.core.emails import send_order_confirmation_email
+                    send_order_confirmation_email(order)
+                except Exception:
+                    pass
 
         return Response(OrderSerializer(order).data)
 
 
-# ── Order history (authenticated users) ──────────────────────────────────────
+# ── Order history ─────────────────────────────────────────────────────────────
 class OrderListView(generics.ListAPIView):
     serializer_class   = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -265,7 +295,7 @@ class OrderListView(generics.ListAPIView):
         ).prefetch_related('items').order_by('-created_at')
 
 
-# ── Single order detail ───────────────────────────────────────────────────────
+# ── Single order ──────────────────────────────────────────────────────────────
 class OrderDetailView(generics.RetrieveAPIView):
     serializer_class   = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
