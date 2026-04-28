@@ -520,6 +520,64 @@ CATALOGUE = {
 }
 
 
+# Cloudinary public_id for each product's primary image.
+# These are uploaded once via upload_to_cloudinary_direct.py and never change.
+PRODUCT_IMAGE_IDS = {
+    'diffuser':                                   'softlifee_products/diffuser',
+    '3D-sand-drop':                               'softlifee_products/3D-sand-drop',
+    'foldable-swivel-mosquito-bat':               'softlifee_products/foldable-swivel-mosquito-bat',
+    'ac-cooling-humidifier-fan':                  'softlifee_products/ac-cooling-humidifier-fan',
+    'e-30-camera-fill-light':                     'softlifee_products/e-30-camera-fill-light',
+    'bathroom-organizer':                         'softlifee_products/bathroom-organizer',
+    'over-the-toilet-organizer-rack':             'softlifee_products/over-the-toilet-organizer-rack',
+    'multifunctional-towel-organizer':            'softlifee_products/multifunctional-towel-organizer',
+    '5in1-multipurpose-organizer':                'softlifee_products/5in1-multipurpose-organizer',
+    'flower-vase':                                'softlifee_products/flower-vase',
+    'ceramic-cup-set':                            'softlifee_products/ceramic-cup-set',
+    'storage-basket':                             'softlifee_products/storage-basket',
+    'ultra-portable-multi-functional-juicer-cup': 'softlifee_products/ultra-portable-multi-functional-juicer-cup',
+    'cooking-flipper':                            'softlifee_products/cooking-flipper',
+    'multifunctional-wall-mounted-trash-can':     'softlifee_products/multifunctional-wall-mounted-trash-can',
+    'moonlight-lamp':                             'softlifee_products/moonlight-lamp',
+    'crystal-diamond-led-lamp':                   'softlifee_products/crystal-diamond-led-lamp',
+    '360-motion-sensor-light':                    'softlifee_products/360-motion-sensor-light',
+    'relaxation-chair':                           'softlifee_products/relaxation-chair',
+    'quick-shoe-wipe':                            'softlifee_products/quick-shoe-wipe',
+    '3-layers-jewelry-box-with-key':              'softlifee_products/3-layers-jewelry-box-with-key',
+    'underwear-organizer':                        'softlifee_products/underwear-organizer',
+    'double-sided-nano-tape':                     'softlifee_products/double-sided-nano-tape',
+    'inspirational-wall-stickers':                'softlifee_products/inspirational-wall-stickers',
+    'gold-decor-tape':                            'softlifee_products/gold-decor-tape',
+    'vine-leaf-room-decor':                       'softlifee_products/vine-leaf-room-decor',
+    'decorative-wall-hooks':                      'softlifee_products/decorative-wall-hooks',
+    'self-adhesive-countertop-film':              'softlifee_products/self-adhesive-countertop-film',
+    'tote-bag':                                   'softlifee_products/tote-bag',
+    'smart-watch-set':                            'softlifee_products/smart-watch-set',
+    'smart-watch-series-8':                       'softlifee_products/smart-watch-series-8',
+    'matte-stanley-tumbler':                      'softlifee_products/matte-stanley-tumbler',
+    'stanley-cup':                                'softlifee_products/stanley-cup',
+    'stanley-cup-accessories':                    'softlifee_products/stanley-cup-accessories',
+    'happy-supply-chain-water-bottle':            'softlifee_products/happy-supply-chain-water-bottle',
+    'laptop-stand':                               'softlifee_products/laptop-stand',
+    'phone-suction-cup':                          'softlifee_products/phone-suction-cup',
+    'rgb-phone-led-light':                        'softlifee_products/rgb-phone-led-light',
+    'wireless-fill-light-bt-remote-tripod':       'softlifee_products/wireless-fill-light-bt-remote-tripod',
+    'bubble-gun':                                 'softlifee_products/bubble-gun',
+    'usb-cigarettes-lighter-mobile-phone-holder': 'softlifee_products/usb-cigarettes-lighter-mobile-phone-holder',
+    'fancy-barbie-pen':                           'softlifee_products/fancy-barbie-pen',
+    'green-stick-mask':                           'softlifee_products/green-stick-mask',
+    'star-pimple-patches':                        'softlifee_products/star-pimple-patches',
+    'compressed-facial-towel':                    'softlifee_products/compressed-facial-towel',
+    'sadoer-ampoules-facial-mask':                'softlifee_products/sadoer-ampoules-facial-mask',
+    'tongue-scrubber':                            'softlifee_products/tongue-scrubber',
+    'travel-box':                                 'softlifee_products/travel-box',
+    'travel-kit':                                 'softlifee_products/travel-kit',
+    'floral-fruit-fragrance-hand-cream':          'softlifee_products/floral-fruit-fragrance-hand-cream',
+    'boob-tape':                                  'softlifee_products/boob-tape',
+    'transparent-boobs-lifter':                   'softlifee_products/transparent-boobs-lifter',
+}
+
+
 class Command(BaseCommand):
     help = 'Seed the database with all 52 Soft Lifee products'
 
@@ -528,7 +586,7 @@ class Command(BaseCommand):
         parser.add_argument('--reset',  action='store_true', help='DELETE all products and categories first.')
 
     def handle(self, *args, **options):
-        from apps.products.models import Category, Subcategory, Product, ColorVariant
+        from apps.products.models import Category, Subcategory, Product, ColorVariant, ProductImage
 
         if options['reset']:
             self.stdout.write(self.style.WARNING('Resetting catalogue…'))
@@ -619,8 +677,22 @@ class Command(BaseCommand):
                     )
                     self.stdout.write(f'        + colour: {c["label"]}')
 
+            # Primary image — create from known Cloudinary public_id if missing
+            cloudinary_id = PRODUCT_IMAGE_IDS.get(p['slug'])
+            if cloudinary_id:
+                has_primary = ProductImage.objects.filter(product=product, is_primary=True).exists()
+                if not has_primary:
+                    # Store as image/upload/<public_id> to match cloudinary_storage format
+                    ProductImage.objects.create(
+                        product    = product,
+                        image      = f'image/upload/{cloudinary_id}',
+                        alt_text   = p['name'],
+                        is_primary = True,
+                        order      = 0,
+                    )
+                    self.stdout.write(f'        + image: {cloudinary_id}')
+
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS(
             f'Done. Created: {created}  |  Updated: {updated}  |  Skipped: {skipped}'
         ))
-        self.stdout.write('Upload images via the admin API: POST /api/v1/products/admin/<slug>/images/')
