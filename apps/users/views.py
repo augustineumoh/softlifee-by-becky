@@ -90,9 +90,11 @@ class AvatarUploadView(APIView):
             return Response({'error': 'No image provided.'}, status=status.HTTP_400_BAD_REQUEST)
         user.avatar = request.FILES['avatar']
         user.save()
+        from apps.users.serializers import UserSerializer
+        avatar_url = UserSerializer(user, context={'request': request}).data.get('avatar')
         return Response({
             'message': 'Avatar updated.',
-            'avatar':  request.build_absolute_uri(user.avatar.url) if user.avatar else None,
+            'avatar':  avatar_url,
         })
 
 

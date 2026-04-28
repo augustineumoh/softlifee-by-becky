@@ -80,8 +80,13 @@ class UserSerializer(serializers.ModelSerializer):
         # If it's already a full URL (e.g. Google OAuth picture), return as-is
         if raw.startswith('http://') or raw.startswith('https://'):
             return raw
+        # cloudinary_storage stores paths as "image/upload/<public_id>" but
+        # CloudinaryImage expects only the public_id portion — strip the prefix
+        public_id = raw
+        if public_id.startswith('image/upload/'):
+            public_id = public_id[len('image/upload/'):]
         try:
-            return cloudinary.CloudinaryImage(raw).build_url(
+            return cloudinary.CloudinaryImage(public_id).build_url(
                 width=200, height=200,
                 crop='fill', gravity='face',
                 fetch_format='auto', quality='auto',
