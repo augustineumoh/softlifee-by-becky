@@ -13,7 +13,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 class OrderItemCreateSerializer(serializers.Serializer):
-    product_id    = serializers.IntegerField()
+    product_slug  = serializers.SlugField()
     quantity      = serializers.IntegerField(min_value=1)
     color_variant = serializers.CharField(required=False, allow_blank=True)
     size_variant  = serializers.CharField(required=False, allow_blank=True)

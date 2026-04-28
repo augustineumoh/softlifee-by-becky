@@ -55,10 +55,10 @@ class CreateOrderView(APIView):
 
         for item_data in items:
             try:
-                product = Product.objects.get(id=item_data['product_id'], is_active=True)
+                product = Product.objects.get(slug=item_data['product_slug'], is_active=True)
             except Product.DoesNotExist:
                 return Response(
-                    {'error': f"Product {item_data['product_id']} not found."},
+                    {'error': f"Product '{item_data['product_slug']}' not found."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 

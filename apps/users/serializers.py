@@ -2,7 +2,6 @@ from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from .models import User, Address, ReferralUse
-import cloudinary
 
 
 # ── Register ──────────────────────────────────────────────────────────────────
@@ -70,35 +69,31 @@ class UserSerializer(serializers.ModelSerializer):
     def get_referral_count(self, obj):
         return obj.referrals_given.count()
 
-    def _cloudinary_avatar_url(self, obj):
-        """Build a Cloudinary URL for the avatar, or return None for unresolvable paths."""
+    def _get_avatar_url(self, obj):
+        """Return a working Cloudinary URL for the user's avatar."""
         if not obj.avatar:
             return None
         raw = str(obj.avatar)
         if not raw:
             return None
-        # If it's already a full URL (e.g. Google OAuth picture), return as-is
+        # Google OAuth or any pre-built URL — return as-is
         if raw.startswith('http://') or raw.startswith('https://'):
             return raw
-        # cloudinary_storage stores paths as "image/upload/<public_id>" but
-        # CloudinaryImage expects only the public_id portion — strip the prefix
-        public_id = raw
-        if public_id.startswith('image/upload/'):
-            public_id = public_id[len('image/upload/'):]
+        # Let the storage backend (MediaCloudinaryStorage) build the URL — it
+        # knows the correct cloud name and path format.
         try:
-            return cloudinary.CloudinaryImage(public_id).build_url(
-                width=200, height=200,
-                crop='fill', gravity='face',
-                fetch_format='auto', quality='auto',
-            )
+            url = obj.avatar.url
+            if url and url.startswith('http'):
+                return url
         except Exception:
-            return None
+            pass
+        return None
 
     def get_avatar(self, obj):
-        return self._cloudinary_avatar_url(obj)
+        return self._get_avatar_url(obj)
 
     def get_avatar_url(self, obj):
-        return self._cloudinary_avatar_url(obj)
+        return self._get_avatar_url(obj)
 
 
 # ── Change Password ───────────────────────────────────────────────────────────
