@@ -6,7 +6,10 @@ import time
 def rate_limit(key: str, limit: int, period: int):
     def decorator(func):
         def wrapper(self, request, *args, **kwargs):
-            ip        = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', 'unknown'))
+            ip_raw    = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', 'unknown'))
+            # X-Forwarded-For may contain a proxy chain like "clientIp, proxy1, proxy2"
+            # Use only the first (real client) IP to avoid invalid cache keys
+            ip        = ip_raw.split(',')[0].strip()
             cache_key = f'ratelimit:{key}:{ip}'
             now       = time.time()
             attempts  = cache.get(cache_key, [])

@@ -56,16 +56,19 @@ class LoginView(APIView):
 
 # ── Logout ────────────────────────────────────────────────────────────────────
 class LogoutView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        # Always succeed — client clears its tokens regardless.
+        # Best-effort blacklist the refresh token if one was provided.
         try:
             refresh_token = request.data.get('refresh')
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            return Response({'message': 'Logged out successfully.'})
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
         except Exception:
-            return Response({'error': 'Invalid token.'}, status=status.HTTP_400_BAD_REQUEST)
+            pass
+        return Response({'message': 'Logged out successfully.'})
 
 
 # ── Profile — GET + PATCH ─────────────────────────────────────────────────────
