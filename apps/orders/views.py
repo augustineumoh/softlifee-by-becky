@@ -291,6 +291,7 @@ class VerifyPaymentView(APIView):
 class OrderListView(generics.ListAPIView):
     serializer_class   = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class   = None  # return plain array — users rarely have >20 orders
 
     def get_queryset(self):
         return Order.objects.filter(

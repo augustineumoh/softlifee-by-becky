@@ -79,14 +79,19 @@ class UserSerializer(serializers.ModelSerializer):
         # Google OAuth or any pre-built URL — return as-is
         if raw.startswith('http://') or raw.startswith('https://'):
             return raw
-        # Let the storage backend (MediaCloudinaryStorage) build the URL — it
-        # knows the correct cloud name and path format.
+        # Let the storage backend (MediaCloudinaryStorage) build the URL
         try:
             url = obj.avatar.url
             if url and url.startswith('http'):
                 return url
         except Exception:
             pass
+        # Fallback: construct Cloudinary URL manually from stored public ID
+        from django.conf import settings
+        cloud = getattr(settings, 'CLOUDINARY_STORAGE', {}).get('CLOUD_NAME', '')
+        if cloud:
+            public_id = raw.lstrip('/')
+            return f'https://res.cloudinary.com/{cloud}/image/upload/{public_id}'
         return None
 
     def get_avatar(self, obj):

@@ -94,17 +94,14 @@ class AvatarUploadView(APIView):
         try:
             user.avatar = request.FILES['avatar']
             user.save()
+            user.refresh_from_db()
         except Exception as e:
             return Response(
                 {'error': f'Failed to upload avatar: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
         from apps.users.serializers import UserSerializer
-        avatar_url = UserSerializer(user, context={'request': request}).data.get('avatar')
-        return Response({
-            'message': 'Avatar updated.',
-            'avatar':  avatar_url,
-        })
+        return Response(UserSerializer(user, context={'request': request}).data)
 
 
 # ── Change Password ───────────────────────────────────────────────────────────
