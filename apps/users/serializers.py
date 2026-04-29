@@ -91,6 +91,9 @@ class UserSerializer(serializers.ModelSerializer):
         cloud = getattr(settings, 'CLOUDINARY_STORAGE', {}).get('CLOUD_NAME', '')
         if cloud:
             public_id = raw.lstrip('/')
+            # Strip leading "image/upload/" so we don't double-insert it
+            if public_id.startswith('image/upload/'):
+                public_id = public_id[len('image/upload/'):]
             return f'https://res.cloudinary.com/{cloud}/image/upload/{public_id}'
         return None
 
