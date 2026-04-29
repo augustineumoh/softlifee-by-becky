@@ -91,8 +91,14 @@ class AvatarUploadView(APIView):
         user = request.user
         if 'avatar' not in request.FILES:
             return Response({'error': 'No image provided.'}, status=status.HTTP_400_BAD_REQUEST)
-        user.avatar = request.FILES['avatar']
-        user.save()
+        try:
+            user.avatar = request.FILES['avatar']
+            user.save()
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to upload avatar: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         from apps.users.serializers import UserSerializer
         avatar_url = UserSerializer(user, context={'request': request}).data.get('avatar')
         return Response({
