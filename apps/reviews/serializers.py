@@ -8,16 +8,24 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Review
         fields = [
-            'id', 'reviewer_name', 'rating', 'title', 'body',
+            'id', 'reviewer_name', 'city', 'rating', 'title', 'body',
             'is_verified_purchase', 'created_at',
         ]
         read_only_fields = ['id', 'is_verified_purchase', 'created_at']
 
 
+class FeaturedReviewSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+
+    class Meta:
+        model  = Review
+        fields = ['id', 'reviewer_name', 'city', 'rating', 'body', 'product_name', 'created_at']
+
+
 class ReviewCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Review
-        fields = ['rating', 'title', 'body', 'reviewer_name', 'reviewer_email']
+        fields = ['rating', 'title', 'body', 'reviewer_name', 'reviewer_email', 'city']
 
     def validate_rating(self, value):
         if not 1 <= value <= 5:

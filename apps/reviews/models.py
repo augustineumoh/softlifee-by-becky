@@ -13,6 +13,7 @@ class Review(models.Model):
     # Store name even for guest reviews
     reviewer_name  = models.CharField(max_length=100)
     reviewer_email = models.EmailField(blank=True)
+    city           = models.CharField(max_length=100, blank=True, default='')
 
     rating     = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)]

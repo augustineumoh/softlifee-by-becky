@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 
 from apps.products.models import Product
 from .models import Review
-from .serializers import ReviewSerializer, ReviewCreateSerializer
+from .serializers import ReviewSerializer, ReviewCreateSerializer, FeaturedReviewSerializer
 
 
 class ProductReviewListView(generics.ListAPIView):
@@ -60,3 +60,17 @@ class MyReviewsView(generics.ListAPIView):
 
     def get_queryset(self):
         return Review.objects.filter(user=self.request.user).order_by('-created_at')
+
+
+class FeaturedReviewsView(generics.ListAPIView):
+    """Top recent approved reviews across all products — used for homepage testimonials."""
+    serializer_class   = FeaturedReviewSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        return (
+            Review.objects
+            .filter(is_approved=True, rating__gte=4)
+            .select_related('product')
+            .order_by('-created_at')[:12]
+        )
