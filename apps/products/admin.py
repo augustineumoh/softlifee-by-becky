@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.utils.html import format_html
+from django.utils.html import format_html, mark_safe
 from .models import (
     Category, Subcategory, Product, ProductImage,
     ColorVariant, ProductVideo, Wishlist, StockHistory,
@@ -63,7 +63,7 @@ class ProductAdmin(admin.ModelAdmin):
         # Guard against NULL stock_count (can occur in seeded data)
         stock = obj.stock_count if obj.stock_count is not None else 0
         if not obj.in_stock or stock == 0:
-            return format_html(
+            return mark_safe(
                 '<span style="background:#FEF2F2;color:#DC2626;padding:3px 10px;'
                 'border-radius:12px;font-size:0.72rem;font-weight:600">Out of Stock</span>'
             )
