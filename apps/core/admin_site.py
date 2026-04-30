@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.urls import path
-from .admin_views import AdminDashboardView
+from .admin_views import AdminDashboardView, InventoryStatusView
 
 
 class SoftLifeeAdminSite(admin.AdminSite):
@@ -12,6 +12,7 @@ class SoftLifeeAdminSite(admin.AdminSite):
         urls = super().get_urls()
         custom = [
             path('', self.admin_view(AdminDashboardView.as_view()), name='index'),
+            path('inventory/', self.admin_view(InventoryStatusView.as_view()), name='inventory'),
         ]
         return custom + urls
 

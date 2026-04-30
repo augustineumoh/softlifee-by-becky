@@ -1,0 +1,330 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  :root {
+    --purple: #8A4FB1;
+    --purple-dark: #5B21B6;
+    --gold: #D4AF37;
+    --navy: #1A1A2E;
+    --green: #16A34A;
+    --red: #BE123C;
+    --amber: #D97706;
+    --white: #FFFFFF;
+    --lavender: #F3E8FF;
+  }
+
+  #content { padding: 20px 28px; }
+
+  .inv-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .inv-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--navy);
+    margin: 0;
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--white);
+    border-radius: 10px;
+    padding: 16px 18px;
+    border: 1px solid rgba(138,79,177,0.12);
+    box-shadow: 0 2px 8px rgba(138,79,177,0.06);
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+    transition: box-shadow 0.2s;
+  }
+  .stat-card:hover { box-shadow: 0 4px 16px rgba(138,79,177,0.15); }
+  .stat-card.active { border-color: var(--purple); background: var(--lavender); }
+  .stat-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(26,26,46,0.45);
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat-value.purple { color: var(--purple); }
+  .stat-value.green  { color: var(--green); }
+  .stat-value.amber  { color: var(--amber); }
+  .stat-value.red    { color: var(--red); }
+
+  .filter-bar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .filter-bar form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; width: 100%; }
+  .filter-bar input[type="text"] {
+    padding: 8px 14px;
+    border: 1px solid rgba(138,79,177,0.25);
+    border-radius: 8px;
+    font-size: 13px;
+    outline: none;
+    flex: 1;
+    min-width: 200px;
+  }
+  .filter-bar input[type="text"]:focus { border-color: var(--purple); }
+  .btn-filter {
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1px solid rgba(138,79,177,0.25);
+    background: var(--white);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--navy);
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.18s;
+  }
+  .btn-filter:hover, .btn-filter.active {
+    background: var(--purple);
+    color: var(--white);
+    border-color: var(--purple);
+  }
+  .btn-search {
+    padding: 8px 20px;
+    background: var(--purple);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .inv-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--white);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(138,79,177,0.07);
+  }
+  .inv-table th {
+    background: var(--lavender);
+    color: var(--purple-dark);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 2px solid rgba(138,79,177,0.12);
+  }
+  .inv-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(138,79,177,0.07);
+    font-size: 13px;
+    color: var(--navy);
+    vertical-align: middle;
+  }
+  .inv-table tr:last-child td { border-bottom: none; }
+  .inv-table tr:hover td { background: #FAF7FF; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-in   { background: #F0FDF4; color: #16A34A; }
+  .badge-low  { background: #FFFBEB; color: #D97706; }
+  .badge-out  { background: #FEF2F2; color: #DC2626; }
+  .badge-active   { background: #F3E8FF; color: #8A4FB1; }
+  .badge-inactive { background: #F3F4F6; color: #6B7280; }
+
+  .stock-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .stock-bar {
+    width: 80px;
+    height: 6px;
+    background: rgba(138,79,177,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .stock-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .fill-in  { background: #16A34A; }
+  .fill-low { background: #D97706; }
+  .fill-out { background: #DC2626; }
+
+  .edit-link {
+    color: var(--purple);
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 12px;
+  }
+  .edit-link:hover { text-decoration: underline; }
+
+  .history-link {
+    color: rgba(26,26,46,0.45);
+    font-size: 11px;
+    text-decoration: none;
+    margin-left: 8px;
+  }
+  .history-link:hover { color: var(--purple); }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(26,26,46,0.4);
+    font-size: 14px;
+  }
+
+  .breadcrumbs a { color: var(--purple); }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'softlifee_admin:index' %}">Home</a>
+  &rsaquo; Inventory Status
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="inv-header">
+  <h1 class="inv-title">Inventory Status</h1>
+  <a href="{% url 'softlifee_admin:products_stockhistory_changelist' %}" class="btn-filter">
+    View Stock History Log
+  </a>
+</div>
+
+<!-- Summary cards -->
+<div class="stat-row">
+  <a class="stat-card {% if not status_filter %}active{% endif %}"
+     href="?{% if search %}q={{ search }}{% endif %}">
+    <div class="stat-label">All Products</div>
+    <div class="stat-value purple">{{ total }}</div>
+  </a>
+  <a class="stat-card {% if status_filter == 'in' %}active{% endif %}"
+     href="?status=in{% if search %}&q={{ search }}{% endif %}">
+    <div class="stat-label">In Stock</div>
+    <div class="stat-value green">{{ in_stock }}</div>
+  </a>
+  <a class="stat-card {% if status_filter == 'low' %}active{% endif %}"
+     href="?status=low{% if search %}&q={{ search }}{% endif %}">
+    <div class="stat-label">Low Stock (&le;5)</div>
+    <div class="stat-value amber">{{ low_stock }}</div>
+  </a>
+  <a class="stat-card {% if status_filter == 'out' %}active{% endif %}"
+     href="?status=out{% if search %}&q={{ search }}{% endif %}">
+    <div class="stat-label">Out of Stock</div>
+    <div class="stat-value red">{{ out_of_stock }}</div>
+  </a>
+</div>
+
+<!-- Search + filters -->
+<div class="filter-bar">
+  <form method="get">
+    {% if status_filter %}
+      <input type="hidden" name="status" value="{{ status_filter }}">
+    {% endif %}
+    <input type="text" name="q" value="{{ search }}" placeholder="Search products…">
+    <button type="submit" class="btn-search">Search</button>
+    {% if search or status_filter %}
+      <a href="?" class="btn-filter">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- Table -->
+<table class="inv-table">
+  <thead>
+    <tr>
+      <th>Product</th>
+      <th>Category</th>
+      <th>Price</th>
+      <th>Stock Level</th>
+      <th>Status</th>
+      <th>Visible</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in products %}
+    {% with bar_pct=p.stock_count|floatformat:0 %}
+    <tr>
+      <td>
+        <strong>{{ p.name }}</strong>
+      </td>
+      <td style="color:rgba(26,26,46,0.55)">{{ p.category.name }}</td>
+      <td>₦{{ p.price|floatformat:0 }}</td>
+      <td>
+        <div class="stock-bar-wrap">
+          {% if p.stock_count == 0 %}
+            <div class="stock-bar"><div class="stock-bar-fill fill-out" style="width:100%"></div></div>
+            <span style="font-weight:700;color:#DC2626">0</span>
+          {% elif p.stock_count <= 5 %}
+            <div class="stock-bar"><div class="stock-bar-fill fill-low" style="width:{{ p.stock_count }}0%"></div></div>
+            <span style="font-weight:700;color:#D97706">{{ p.stock_count }}</span>
+          {% else %}
+            <div class="stock-bar"><div class="stock-bar-fill fill-in" style="width:{% if p.stock_count >= 10 %}100{% else %}{{ p.stock_count }}0{% endif %}%"></div></div>
+            <span style="font-weight:700;color:#16A34A">{{ p.stock_count }}</span>
+          {% endif %}
+        </div>
+      </td>
+      <td>
+        {% if not p.in_stock or p.stock_count == 0 %}
+          <span class="badge badge-out">Out of Stock</span>
+        {% elif p.stock_count <= 5 %}
+          <span class="badge badge-low">Low Stock</span>
+        {% else %}
+          <span class="badge badge-in">In Stock</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if p.is_active %}
+          <span class="badge badge-active">Active</span>
+        {% else %}
+          <span class="badge badge-inactive">Hidden</span>
+        {% endif %}
+      </td>
+      <td>
+        <a class="edit-link" href="{% url 'softlifee_admin:products_product_change' p.pk %}">Edit</a>
+        <a class="history-link" href="{% url 'softlifee_admin:products_stockhistory_changelist' %}?q={{ p.name }}">History</a>
+      </td>
+    </tr>
+    {% endwith %}
+    {% empty %}
+    <tr>
+      <td colspan="7">
+        <div class="empty-state">No products found.</div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -122,3 +122,43 @@ class AdminDashboardView(View):
         }
 
         return render(request, 'admin/dashboard.html', context)
+
+
+@method_decorator(staff_member_required, name='dispatch')
+class InventoryStatusView(View):
+
+    def get(self, request):
+        from apps.products.models import Product
+
+        search = request.GET.get('q', '').strip()
+        status = request.GET.get('status', '')
+
+        products = Product.objects.select_related('category').order_by('stock_count')
+
+        if search:
+            products = products.filter(name__icontains=search)
+
+        if status == 'out':
+            products = products.filter(stock_count=0)
+        elif status == 'low':
+            products = products.filter(stock_count__gt=0, stock_count__lte=5)
+        elif status == 'in':
+            products = products.filter(stock_count__gt=5)
+
+        total      = Product.objects.count()
+        out_of_stock = Product.objects.filter(stock_count=0).count()
+        low_stock  = Product.objects.filter(stock_count__gt=0, stock_count__lte=5).count()
+        in_stock   = Product.objects.filter(stock_count__gt=5).count()
+
+        context = {
+            'title':        'Inventory Status',
+            'has_permission': True,
+            'products':     products,
+            'search':       search,
+            'status_filter': status,
+            'total':        total,
+            'out_of_stock': out_of_stock,
+            'low_stock':    low_stock,
+            'in_stock':     in_stock,
+        }
+        return render(request, 'admin/inventory.html', context)

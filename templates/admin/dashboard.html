@@ -374,7 +374,7 @@
       <div class="chart-title">⚠️ Low Stock Alerts</div>
       <div class="chart-subtitle">Products with 5 or fewer units remaining</div>
     </div>
-    <a href="/admin/products/product/?in_stock__exact=1">Manage inventory →</a>
+    <a href="{% url 'softlifee_admin:inventory' %}">View full inventory →</a>
   </div>
   <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap:12px;">
     {% for product in low_stock_products %}
