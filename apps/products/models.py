@@ -72,6 +72,12 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        # Keep in_stock consistent with stock_count
+        if self.stock_count is not None:
+            self.in_stock = self.stock_count > 0
+        super().save(*args, **kwargs)
+
     @property
     def is_new(self):
         from datetime import date, timedelta

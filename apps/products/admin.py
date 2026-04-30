@@ -107,9 +107,9 @@ class ProductAdmin(admin.ModelAdmin):
                 except Exception:
                     pass
 
-        # Low-stock alert
+        # Low-stock alert (obj.in_stock was synced by model's save())
         stock = obj.stock_count or 0
-        if stock <= 5 and obj.in_stock:
+        if 0 < stock <= 5:
             try:
                 from apps.core.emails import send_low_stock_alert
                 send_low_stock_alert(obj)
