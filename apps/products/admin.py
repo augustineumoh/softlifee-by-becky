@@ -60,45 +60,56 @@ class ProductAdmin(admin.ModelAdmin):
     readonly_fields = ['rating', 'review_count']
 
     def inventory_status(self, obj):
-        if not obj.in_stock or obj.stock_count == 0:
+        # Guard against NULL stock_count (can occur in seeded data)
+        stock = obj.stock_count if obj.stock_count is not None else 0
+        if not obj.in_stock or stock == 0:
             return format_html(
                 '<span style="background:#FEF2F2;color:#DC2626;padding:3px 10px;'
                 'border-radius:12px;font-size:0.72rem;font-weight:600">Out of Stock</span>'
             )
-        if obj.stock_count <= 5:
+        if stock <= 5:
             return format_html(
                 '<span style="background:#FFFBEB;color:#D97706;padding:3px 10px;'
                 'border-radius:12px;font-size:0.72rem;font-weight:600">Low Stock ({})</span>',
-                obj.stock_count,
+                stock,
             )
         return format_html(
             '<span style="background:#F0FDF4;color:#16A34A;padding:3px 10px;'
             'border-radius:12px;font-size:0.72rem;font-weight:600">In Stock ({})</span>',
-            obj.stock_count,
+            stock,
         )
     inventory_status.short_description = 'Inventory'
 
     def save_model(self, request, obj, form, change):
+        old_stock = None
         if change and 'stock_count' in form.changed_data:
-            old          = Product.objects.get(pk=obj.pk)
-            stock_before = old.stock_count
-            super().save_model(request, obj, form, change)
-            stock_after     = obj.stock_count
-            quantity_change = stock_after - stock_before
-            if quantity_change != 0:
-                action = 'added' if quantity_change > 0 else 'removed'
-                StockHistory.objects.create(
-                    product         = obj,
-                    action          = action,
-                    quantity_change = quantity_change,
-                    stock_before    = stock_before,
-                    stock_after     = stock_after,
-                    created_by      = request.user,
-                )
-        else:
-            super().save_model(request, obj, form, change)
+            try:
+                old_stock = Product.objects.get(pk=obj.pk).stock_count or 0
+            except Product.DoesNotExist:
+                pass
 
-        if obj.stock_count <= 5 and obj.in_stock:
+        super().save_model(request, obj, form, change)
+
+        # Log stock change
+        if old_stock is not None:
+            new_stock       = obj.stock_count or 0
+            quantity_change = new_stock - old_stock
+            if quantity_change != 0:
+                try:
+                    StockHistory.objects.create(
+                        product         = obj,
+                        action          = 'added' if quantity_change > 0 else 'removed',
+                        quantity_change = quantity_change,
+                        stock_before    = old_stock,
+                        stock_after     = new_stock,
+                        created_by      = request.user,
+                    )
+                except Exception:
+                    pass
+
+        # Low-stock alert
+        stock = obj.stock_count or 0
+        if stock <= 5 and obj.in_stock:
             try:
                 from apps.core.emails import send_low_stock_alert
                 send_low_stock_alert(obj)
