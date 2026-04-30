@@ -24,6 +24,7 @@ class CategoryListView(generics.ListAPIView):
 class ProductListView(generics.ListAPIView):
     serializer_class   = ProductListSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class   = None   # return all products; frontend handles display pagination
     filter_backends    = [filters.SearchFilter, filters.OrderingFilter]
     search_fields      = ['name', 'description', 'category__name', 'subcategory__name']
     ordering_fields    = ['price', 'created_at', 'rating', 'name']
