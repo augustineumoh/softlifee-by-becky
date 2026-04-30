@@ -1,0 +1,111 @@
+{% extends "admin/base_site.html" %}
+{% block title %}Give Discount{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+  #content { padding: 20px 28px; }
+  .form-card { background:#fff; border-radius:12px; padding:28px 32px; border:1px solid rgba(138,79,177,0.12); box-shadow:0 2px 12px rgba(138,79,177,0.05); max-width:600px; }
+  .field { margin-bottom:20px; }
+  .field label { display:block; font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:rgba(26,26,46,0.5); margin-bottom:6px; }
+  .field input, .field select { width:100%; padding:10px 12px; border:1px solid rgba(138,79,177,0.25); border-radius:8px; font-size:13px; font-family:inherit; outline:none; box-sizing:border-box; }
+  .field input:focus, .field select:focus { border-color:#8A4FB1; }
+  .field-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .customer-pill { display:inline-flex; align-items:center; gap:8px; background:#F3E8FF; border-radius:8px; padding:10px 16px; margin-bottom:24px; }
+  .customer-pill .name  { font-size:14px; font-weight:700; color:#1A1A2E; }
+  .customer-pill .email { font-size:12px; color:#5B21B6; }
+  .preview-box { background:#FEF9C3; border:1px solid #FDE68A; border-radius:8px; padding:12px 16px; margin-bottom:20px; font-size:13px; color:#92400E; }
+  .checkbox-row { display:flex; align-items:center; gap:8px; margin-bottom:20px; }
+  .checkbox-row input[type=checkbox] { width:16px; height:16px; accent-color:#8A4FB1; }
+  .checkbox-row label { font-size:13px; color:#1A1A2E; cursor:pointer; }
+  .btn-create { background:#8A4FB1; color:#fff; border:none; padding:11px 28px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+  .btn-create:hover { background:#5B21B6; }
+  .btn-cancel { margin-left:12px; font-size:13px; color:#666; text-decoration:none; }
+  .note { font-size:11px; color:#9CA3AF; margin-top:4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:20px;">
+  <a href="{% url 'softlifee_admin:customers' %}" style="font-size:12px;color:#8A4FB1;text-decoration:none;">← Back to Customers</a>
+</div>
+<h1 style="font-size:20px;font-weight:700;color:#1A1A2E;margin:0 0 20px;">Give Personal Discount</h1>
+
+{% if messages %}
+  {% for message in messages %}
+    <p style="background:{% if message.tags == 'error' %}#FEE2E2{% else %}#DCFCE7{% endif %};color:{% if message.tags == 'error' %}#991B1B{% else %}#166534{% endif %};padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;">{{ message }}</p>
+  {% endfor %}
+{% endif %}
+
+<div class="form-card">
+  <div class="customer-pill">
+    <div>
+      <div class="name">{{ customer.get_full_name|default:"—" }}</div>
+      <div class="email">{{ customer.email }}</div>
+    </div>
+  </div>
+
+  <div class="preview-box">
+    🎁 A unique single-use discount code will be generated and can be emailed directly to this customer.
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="field-row">
+      <div class="field">
+        <label>Discount Type *</label>
+        <select name="discount_type" id="discount_type" onchange="updatePreview()">
+          <option value="percentage">Percentage (%)</option>
+          <option value="fixed">Fixed Amount (₦)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Value *</label>
+        <input type="number" name="value" id="disc_value" min="1" step="any" required placeholder="e.g. 10"
+               onkeyup="updatePreview()" oninput="updatePreview()">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Minimum Order (₦)</label>
+        <input type="number" name="minimum_order" min="0" step="1" placeholder="0 = no minimum" value="0">
+        <p class="note">Leave 0 for no minimum spend requirement</p>
+      </div>
+      <div class="field">
+        <label>Valid For (days)</label>
+        <input type="number" name="days_valid" min="1" max="365" value="30">
+        <p class="note">Code expires after this many days</p>
+      </div>
+    </div>
+
+    <div id="preview" style="background:#F3E8FF;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#4C1D95;display:none;">
+      Preview: <strong id="preview_text"></strong>
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" name="send_email" id="send_email" value="1" checked>
+      <label for="send_email">Email the discount code to <strong>{{ customer.email }}</strong></label>
+    </div>
+
+    <button type="submit" class="btn-create">Create &amp; Send →</button>
+    <a href="{% url 'softlifee_admin:customers' %}" class="btn-cancel">Cancel</a>
+  </form>
+</div>
+
+<script>
+function updatePreview() {
+  const type  = document.getElementById('discount_type').value;
+  const val   = document.getElementById('disc_value').value;
+  const box   = document.getElementById('preview');
+  const text  = document.getElementById('preview_text');
+  if (!val) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  if (type === 'percentage') {
+    text.textContent = val + '% off their next order';
+  } else {
+    text.textContent = '₦' + parseFloat(val).toLocaleString('en-NG') + ' off their next order';
+  }
+}
+</script>
+{% endblock %}

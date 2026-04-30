@@ -48,6 +48,53 @@ class ProductAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
     ordering            = ['-created_at']
     inlines             = [ProductImageInline, ColorVariantInline, ProductVideoInline]
+    actions             = ['send_new_arrival_newsletter']
+
+    @admin.action(description='📧 Send new arrival newsletter for selected products')
+    def send_new_arrival_newsletter(self, request, queryset):
+        from apps.newsletter.models import NewsletterSubscriber
+        from apps.newsletter.emails import send_newsletter_blast
+        from django.conf import settings
+
+        products = list(queryset[:6])
+        if not products:
+            self.message_user(request, 'No products selected.', level='warning')
+            return
+
+        names = ', '.join(p.name for p in products)
+        subject = f'New Arrivals at Soft Lifee 🛍️'
+        heading = 'Something new just dropped ✨'
+
+        product_lines = ''.join(
+            f'<p style="margin:8px 0"><strong style="color:#8A4FB1">{p.name}</strong>'
+            f' — ₦{p.price:,.0f}</p>'
+            for p in products
+        )
+        body_html = (
+            f'<p>We\'ve just added fresh new pieces to the store — '
+            f'and you\'re the first to know.</p>'
+            f'{product_lines}'
+            f'<p style="margin-top:16px">Head over to our shop to grab yours before they sell out!</p>'
+        )
+
+        subscribers = NewsletterSubscriber.objects.filter(is_active=True)
+        count = subscribers.count()
+        if count == 0:
+            self.message_user(request, 'No active subscribers.', level='warning')
+            return
+
+        try:
+            send_newsletter_blast(
+                subscribers,
+                subject=subject,
+                heading=heading,
+                body_html=body_html,
+                cta_label='Shop New Arrivals',
+                cta_url=f"{settings.FRONTEND_URL}/new-arrivals",
+            )
+            self.message_user(request, f'New arrival newsletter sent to {count} subscriber(s) for: {names}.')
+        except Exception as e:
+            self.message_user(request, f'Error sending newsletter: {e}', level='error')
 
     fieldsets = (
         ('Basic Info',   {'fields': ('name', 'slug', 'category', 'subcategory', 'badge')}),

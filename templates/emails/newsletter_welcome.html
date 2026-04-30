@@ -1,0 +1,26 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<h1>You're in! 💜</h1>
+<p>Hey {{ name }},</p>
+<p>
+  Welcome to the <strong class="highlight">Soft Lifee by Becky</strong> newsletter —
+  you've just secured your spot on the VIP list.
+</p>
+<p>
+  As a subscriber, you'll be the first to hear about new arrivals, exclusive
+  deals, restocks, and everything happening at Soft Lifee.
+</p>
+
+<div class="divider"></div>
+
+<div class="center" style="margin:28px 0">
+  <a href="{{ shop_url }}" class="btn">Explore the Store</a>
+</div>
+
+<div class="divider"></div>
+
+<p class="small center">
+  Changed your mind? No hard feelings.<br/>
+  <a href="{{ unsubscribe_url }}" style="color:#8A4FB1;">Unsubscribe here</a>
+</p>
+{% endblock %}

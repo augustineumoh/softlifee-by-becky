@@ -1,0 +1,9 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<p>Hi {{ first_name }},</p>
+
+{{ body_html|safe }}
+
+<div class="divider"></div>
+<p class="small">This message was sent directly by the Soft Lifee by Becky team.</p>
+{% endblock %}

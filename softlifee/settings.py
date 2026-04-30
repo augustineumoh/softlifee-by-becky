@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'apps.orders',
     'apps.reviews',
     'apps.cart',
+    'apps.newsletter',
 ]
 
 # ── Middleware ────────────────────────────────────────────────────────────────
@@ -118,12 +119,13 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon':           '200/day',
-        'user':           '2000/day',
-        'register':       '5/hour',
-        'login':          '10/min',
-        'checkout':       '30/hour',
-        'return_request': '10/hour',
+        'anon':                 '200/day',
+        'user':                 '2000/day',
+        'register':             '5/hour',
+        'login':                '10/min',
+        'checkout':             '30/hour',
+        'return_request':       '10/hour',
+        'newsletter_subscribe': '10/hour',
     },
 }
 

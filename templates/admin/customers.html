@@ -1,0 +1,163 @@
+{% extends "admin/base_site.html" %}
+{% block title %}Customers{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+  :root { --purple:#8A4FB1; --purple-dark:#5B21B6; --gold:#D4AF37; --navy:#1A1A2E; --green:#16A34A; --red:#BE123C; --amber:#D97706; }
+  #content { padding: 20px 28px; }
+
+  .cust-summary { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px; margin-bottom:24px; }
+  .cust-stat { background:#fff; border-radius:10px; padding:16px 18px; border:1px solid rgba(138,79,177,0.12); box-shadow:0 2px 8px rgba(138,79,177,0.05); }
+  .cust-stat-label { font-size:10px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:rgba(26,26,46,0.4); margin-bottom:6px; }
+  .cust-stat-val { font-size:24px; font-weight:700; color:var(--navy); }
+  .cust-stat-val.purple { color:var(--purple); }
+  .cust-stat-val.gold   { color:var(--gold); }
+  .cust-stat-val.green  { color:var(--green); }
+
+  .toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+  .toolbar input[type=text] { padding:8px 12px; border:1px solid rgba(138,79,177,0.25); border-radius:8px; font-size:13px; min-width:220px; outline:none; }
+  .toolbar input[type=text]:focus { border-color:var(--purple); }
+  .pill-filter { display:flex; gap:6px; flex-wrap:wrap; }
+  .pill { display:inline-block; padding:5px 14px; border-radius:100px; font-size:11px; font-weight:600; cursor:pointer; text-decoration:none; border:1.5px solid rgba(138,79,177,0.2); color:var(--purple-dark); background:transparent; transition:all .15s; }
+  .pill:hover, .pill.active { background:var(--purple); color:#fff; border-color:var(--purple); }
+
+  .cust-table { width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden; border:1px solid rgba(138,79,177,0.1); box-shadow:0 2px 12px rgba(138,79,177,0.05); }
+  .cust-table th { text-align:left; font-size:10px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:rgba(26,26,46,0.4); padding:12px 14px; border-bottom:1px solid rgba(138,79,177,0.1); background:#faf7ff; }
+  .cust-table td { padding:12px 14px; font-size:13px; color:var(--navy); border-bottom:1px solid rgba(138,79,177,0.05); vertical-align:middle; }
+  .cust-table tr:last-child td { border-bottom:none; }
+  .cust-table tr:hover td { background:rgba(138,79,177,0.02); }
+
+  .tier-badge { display:inline-block; padding:3px 10px; border-radius:100px; font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; white-space:nowrap; }
+  .tier-vip       { background:#FEF3C7; color:#92400E; }
+  .tier-returning { background:#EDE9FE; color:#4C1D95; }
+  .tier-new       { background:#DCFCE7; color:#166534; }
+  .tier-no-orders { background:#F3F4F6; color:#6B7280; }
+
+  .action-btn { display:inline-flex; align-items:center; gap:4px; padding:5px 10px; border-radius:6px; font-size:11px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:all .15s; white-space:nowrap; }
+  .btn-email    { background:#EDE9FE; color:#4C1D95; }
+  .btn-email:hover { background:#DDD6FE; }
+  .btn-discount { background:#FEF3C7; color:#92400E; }
+  .btn-discount:hover { background:#FDE68A; }
+
+  .amount { font-weight:700; color:var(--purple); }
+  .muted  { font-size:11px; color:rgba(26,26,46,0.4); }
+
+  .empty-state { text-align:center; padding:48px 24px; color:rgba(26,26,46,0.35); font-size:13px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+  <div>
+    <h1 style="font-size:22px;font-weight:700;color:#1A1A2E;margin:0;">Customers</h1>
+    <p style="font-size:12px;color:rgba(26,26,46,0.4);margin-top:4px;">{{ total_count }} registered account{{ total_count|pluralize }}</p>
+  </div>
+</div>
+
+<!-- Summary stats -->
+<div class="cust-summary">
+  <div class="cust-stat">
+    <div class="cust-stat-label">Total</div>
+    <div class="cust-stat-val purple">{{ total_count }}</div>
+  </div>
+  <div class="cust-stat">
+    <div class="cust-stat-label">⭐ VIP (5+ orders)</div>
+    <div class="cust-stat-val gold">{{ vip_count }}</div>
+  </div>
+  <div class="cust-stat">
+    <div class="cust-stat-label">🔁 Returning (2–4)</div>
+    <div class="cust-stat-val purple">{{ ret_count }}</div>
+  </div>
+  <div class="cust-stat">
+    <div class="cust-stat-label">🆕 New (1 order)</div>
+    <div class="cust-stat-val green">{{ new_count }}</div>
+  </div>
+  <div class="cust-stat">
+    <div class="cust-stat-label">No purchases yet</div>
+    <div class="cust-stat-val" style="color:#9CA3AF;">{{ no_ord_count }}</div>
+  </div>
+</div>
+
+<!-- Toolbar -->
+<form method="get" class="toolbar">
+  <input type="text" name="q" value="{{ search }}" placeholder="Search by name or email…">
+  <div class="pill-filter">
+    <a href="?{% if search %}q={{ search }}&{% endif %}" class="pill {% if not tier_filter %}active{% endif %}">All</a>
+    <a href="?{% if search %}q={{ search }}&{% endif %}tier=vip"       class="pill {% if tier_filter == 'vip' %}active{% endif %}">⭐ VIP</a>
+    <a href="?{% if search %}q={{ search }}&{% endif %}tier=returning"  class="pill {% if tier_filter == 'returning' %}active{% endif %}">🔁 Returning</a>
+    <a href="?{% if search %}q={{ search }}&{% endif %}tier=new"        class="pill {% if tier_filter == 'new' %}active{% endif %}">🆕 New</a>
+    <a href="?{% if search %}q={{ search }}&{% endif %}tier=no-orders"  class="pill {% if tier_filter == 'no-orders' %}active{% endif %}">No orders</a>
+  </div>
+  <button type="submit" style="padding:8px 16px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Search</button>
+</form>
+
+<!-- Customer table -->
+<table class="cust-table">
+  <thead>
+    <tr>
+      <th>Customer</th>
+      <th>Tier</th>
+      <th>Orders</th>
+      <th>Total Spent</th>
+      <th>Last Order</th>
+      <th>Joined</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in customers %}
+    <tr>
+      <td>
+        <div style="font-weight:600;">{{ c.user.get_full_name|default:c.user.email }}</div>
+        <div class="muted">{{ c.user.email }}</div>
+        {% if c.user.phone %}<div class="muted">{{ c.user.phone }}</div>{% endif %}
+      </td>
+      <td>
+        {% if c.tier == 'vip' %}
+          <span class="tier-badge tier-vip">⭐ VIP</span>
+        {% elif c.tier == 'returning' %}
+          <span class="tier-badge tier-returning">🔁 Returning</span>
+        {% elif c.tier == 'new' %}
+          <span class="tier-badge tier-new">🆕 New</span>
+        {% else %}
+          <span class="tier-badge tier-no-orders">No orders</span>
+        {% endif %}
+      </td>
+      <td style="font-weight:700;color:var(--purple-dark);">{{ c.order_count }}</td>
+      <td>
+        {% if c.total_spent %}
+          <span class="amount">₦{{ c.total_spent|floatformat:0 }}</span>
+        {% else %}
+          <span class="muted">—</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if c.last_order %}
+          <div>{{ c.last_order|date:"d M Y" }}</div>
+          <div class="muted">{{ c.last_order|timesince }} ago</div>
+        {% else %}
+          <span class="muted">—</span>
+        {% endif %}
+      </td>
+      <td>
+        <div>{{ c.user.date_joined|date:"d M Y" }}</div>
+      </td>
+      <td>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="{% url 'softlifee_admin:customer_email' c.user.id %}" class="action-btn btn-email">
+            ✉️ Email
+          </a>
+          <a href="{% url 'softlifee_admin:customer_discount' c.user.id %}" class="action-btn btn-discount">
+            🎁 Discount
+          </a>
+        </div>
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="7" class="empty-state">No customers found{% if search %} matching "{{ search }}"{% endif %}.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
