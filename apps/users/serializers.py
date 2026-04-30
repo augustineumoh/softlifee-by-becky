@@ -76,26 +76,24 @@ class UserSerializer(serializers.ModelSerializer):
         raw = str(obj.avatar)
         if not raw:
             return None
-        # Google OAuth or any pre-built URL — return as-is
+
+        # Full URL already (Google OAuth, or our direct-upload approach storing secure_url).
+        # Fix the double image/upload prefix that old uploads may have created.
         if raw.startswith('http://') or raw.startswith('https://'):
-            return raw
-        # Let the storage backend (MediaCloudinaryStorage) build the URL
-        try:
-            url = obj.avatar.url
-            if url and url.startswith('http'):
-                return url
-        except Exception:
-            pass
-        # Fallback: construct Cloudinary URL manually from stored public ID
+            return raw.replace('/image/upload/image/upload/', '/image/upload/')
+
+        # Stored Cloudinary path — build the URL manually.
+        # We intentionally skip obj.avatar.url because MediaCloudinaryStorage.url()
+        # prepends the "image/upload/" delivery segment even when it's already in the
+        # stored name, producing an invalid double-prefix URL.
         from django.conf import settings
         cloud = getattr(settings, 'CLOUDINARY_STORAGE', {}).get('CLOUD_NAME', '')
-        if cloud:
-            public_id = raw.lstrip('/')
-            # Strip leading "image/upload/" so we don't double-insert it
-            if public_id.startswith('image/upload/'):
-                public_id = public_id[len('image/upload/'):]
-            return f'https://res.cloudinary.com/{cloud}/image/upload/{public_id}'
-        return None
+        if not cloud:
+            return None
+        public_id = raw.lstrip('/')
+        if public_id.startswith('image/upload/'):
+            public_id = public_id[len('image/upload/'):]
+        return f'https://res.cloudinary.com/{cloud}/image/upload/{public_id}'
 
     def get_avatar(self, obj):
         return self._get_avatar_url(obj)

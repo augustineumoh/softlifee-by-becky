@@ -92,8 +92,17 @@ class AvatarUploadView(APIView):
         if 'avatar' not in request.FILES:
             return Response({'error': 'No image provided.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            user.avatar = request.FILES['avatar']
-            user.save()
+            import cloudinary.uploader
+            result = cloudinary.uploader.upload(
+                request.FILES['avatar'],
+                folder      = 'avatars',
+                public_id   = f'user_{user.id}',
+                overwrite   = True,
+                resource_type = 'image',
+            )
+            # Store the full HTTPS URL — the serializer returns it as-is, no path-building needed
+            user.avatar = result['secure_url']
+            user.save(update_fields=['avatar'])
             user.refresh_from_db()
         except Exception as e:
             return Response(

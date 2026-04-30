@@ -11,6 +11,7 @@ class ProductReviewListView(generics.ListAPIView):
     """List all approved reviews for a product."""
     serializer_class   = ReviewSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class   = None  # return plain array — frontend expects Review[]
 
     def get_queryset(self):
         slug = self.kwargs['slug']
@@ -66,6 +67,7 @@ class FeaturedReviewsView(generics.ListAPIView):
     """Top recent approved reviews across all products — used for homepage testimonials."""
     serializer_class   = FeaturedReviewSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class   = None
 
     def get_queryset(self):
         return (

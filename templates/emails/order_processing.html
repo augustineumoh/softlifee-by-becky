@@ -1,0 +1,30 @@
+{% extends "emails/base.html" %}
+{% block content %}
+
+<h1>Your Order is Being Packaged 📦</h1>
+
+<p>Hi <strong style="color:#1A1A2E;">{{ order.customer_name }}</strong>, great news — your order is now being carefully packaged and prepared for dispatch!</p>
+
+<div class="info-box">
+  <p><strong>Order Number:</strong> {{ order.order_number }}</p>
+  <p><strong>Status:</strong> <span class="badge">Packaging</span></p>
+  <p><strong>Delivering to:</strong> {{ order.delivery_address }}, {{ order.delivery_city }}, {{ order.delivery_state }}</p>
+</div>
+
+<div class="divider"></div>
+
+<p>We'll send you another update as soon as your order is on its way. Estimated delivery times:</p>
+<p>
+  Lagos: <span class="highlight">1–2 business days</span><br/>
+  Other states: <span class="highlight">3–5 business days</span>
+</p>
+
+<div class="center" style="margin-top:24px;">
+  <a href="{{ track_url }}" class="btn">Track My Order →</a>
+</div>
+
+<p class="center small" style="margin-top:16px;">
+  Need help? Chat us on <a href="https://wa.me/2347019908205" style="color:#25D366; font-weight:600;">WhatsApp</a> — we respond fast!
+</p>
+
+{% endblock %}

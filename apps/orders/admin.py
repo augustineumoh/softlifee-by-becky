@@ -26,9 +26,36 @@ class OrderAdmin(admin.ModelAdmin):
                       'customer_phone', 'paystack_ref']
     ordering       = ['-created_at']
     def save_model(self, request, obj, form, change):
-        if change and 'status' in form.changed_data:
-            send_order_status_email(obj)
         super().save_model(request, obj, form, change)
+        if not change:
+            return
+
+        # Admin confirms payment → send order confirmation email
+        payment_confirmed = (
+            'payment_status' in form.changed_data and obj.payment_status == 'paid'
+        )
+        status_confirmed = (
+            'status' in form.changed_data and obj.status == 'confirmed'
+        )
+        if payment_confirmed or status_confirmed:
+            if obj.payment_status == 'paid' and not obj.paid_at:
+                from django.utils import timezone
+                obj.__class__.objects.filter(pk=obj.pk).update(paid_at=timezone.now())
+            try:
+                from apps.core.emails import send_order_confirmation_email
+                send_order_confirmation_email(obj)
+            except Exception:
+                pass
+            return
+
+        # Other status changes → send status-specific email
+        if 'status' in form.changed_data and obj.status in (
+            'processing', 'shipped', 'delivered', 'cancelled'
+        ):
+            try:
+                send_order_status_email(obj)
+            except Exception:
+                pass
 
     readonly_fields = ['order_number', 'subtotal', 'delivery_fee', 'total',
                        'paystack_ref', 'paystack_txn_id', 'paid_at',
