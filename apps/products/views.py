@@ -115,7 +115,7 @@ class ProductDetailView(generics.RetrieveAPIView):
         return Response(serializer.data)
 
 
-# ── Related products ──────────────────────────────────────────────────────────
+# ── Related products / Recommendations ───────────────────────────────────────
 class RelatedProductsView(generics.ListAPIView):
     serializer_class   = ProductListSerializer
     permission_classes = [permissions.AllowAny]
@@ -123,10 +123,19 @@ class RelatedProductsView(generics.ListAPIView):
     def get_queryset(self):
         slug    = self.kwargs['slug']
         product = get_object_or_404(Product, slug=slug, is_active=True)
+
+        # Prefer subcategory matches for more specific recommendations
+        if product.subcategory:
+            subcategory_qs = Product.objects.filter(
+                subcategory=product.subcategory, is_active=True
+            ).exclude(slug=slug).prefetch_related('images').order_by('-rating', '-review_count')
+            if subcategory_qs.count() >= 4:
+                return subcategory_qs[:8]
+
+        # Fall back to same category ordered by rating
         return Product.objects.filter(
-            category=product.category,
-            is_active=True
-        ).exclude(slug=slug).prefetch_related('images')[:8]
+            category=product.category, is_active=True
+        ).exclude(slug=slug).prefetch_related('images').order_by('-rating', '-review_count')[:8]
 
 
 # ── Wishlist ──────────────────────────────────────────────────────────────────
