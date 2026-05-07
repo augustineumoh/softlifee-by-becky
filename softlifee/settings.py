@@ -191,14 +191,24 @@ USE_TZ        = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ── Email ─────────────────────────────────────────────────────────────────────
-EMAIL_BACKEND       = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-EMAIL_TIMEOUT       = 10   # seconds — prevent SMTP from hanging the request
+EMAIL_TIMEOUT       = 10
 EMAIL_HOST          = env('EMAIL_HOST',    default='smtp.gmail.com')
 EMAIL_PORT          = env.int('EMAIL_PORT', default=587)
 EMAIL_USE_TLS       = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_USE_SSL       = env.bool('EMAIL_USE_SSL', default=False)
 EMAIL_HOST_USER     = env('EMAIL_HOST_USER',     default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL  = env('DEFAULT_FROM_EMAIL',  default='Soft Lifee by Becky <noreply@softlifeebybecky.com>')
+
+# Brevo HTTP API — bypasses SMTP entirely (Railway blocks outbound SMTP on all ports).
+# Set BREVO_API_KEY in Railway env vars; when present this takes priority over SMTP settings.
+_BREVO_API_KEY = env('BREVO_API_KEY', default='')
+if _BREVO_API_KEY:
+    INSTALLED_APPS += ['anymail']
+    EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
+    ANYMAIL = {'BREVO_API_KEY': _BREVO_API_KEY}
+else:
+    EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 
 ADMIN_EMAIL  = env('ADMIN_EMAIL',  default='hello@softlifeebybecky.com')
 BACKEND_URL  = env('BACKEND_URL',  default='http://localhost:8000')
