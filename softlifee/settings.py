@@ -88,6 +88,7 @@ DATABASES = {
     'default': dj_database_url.config(
         default=env('DATABASE_URL'),
         conn_max_age=600,
+        conn_health_checks=True,   # drop stale connections before reuse
     )
 }
 
@@ -119,8 +120,8 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon':                 '200/day',
-        'user':                 '2000/day',
+        'anon':                 '2000/day',   # ~200 page views/day per IP
+        'user':                 '5000/day',
         'register':             '5/hour',
         'login':                '10/min',
         'checkout':             '30/hour',
@@ -203,9 +204,21 @@ BACKEND_URL  = env('BACKEND_URL',  default='http://localhost:8000')
 FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
 
 # ── Cache ─────────────────────────────────────────────────────────────────────
-CACHES = {
-    'default': {
-        'BACKEND':  'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'softlifee-cache',
+# Use Redis when REDIS_URL is set (shared across all workers, survives restarts).
+# Falls back to LocMemCache for local dev.
+_REDIS_URL = env('REDIS_URL', default='')
+if _REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND':  'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': _REDIS_URL,
+            'OPTIONS':  {'socket_timeout': 5},
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND':  'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'softlifee-cache',
+        }
+    }

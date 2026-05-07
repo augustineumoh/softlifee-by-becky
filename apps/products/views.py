@@ -3,6 +3,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 from .models import (
     Category, Product, Wishlist, RecentlyViewed
@@ -14,6 +16,7 @@ from .serializers import (
 
 
 # ── Categories ────────────────────────────────────────────────────────────────
+@method_decorator(cache_page(60 * 10), name='dispatch')   # 10-minute cache
 class CategoryListView(generics.ListAPIView):
     queryset           = Category.objects.filter(is_active=True).prefetch_related('subcategories')
     serializer_class   = CategorySerializer
@@ -21,6 +24,7 @@ class CategoryListView(generics.ListAPIView):
 
 
 # ── Products list with filtering ──────────────────────────────────────────────
+@method_decorator(cache_page(60 * 2), name='dispatch')    # 2-minute cache; URL+query string = unique key per filter combo
 class ProductListView(generics.ListAPIView):
     serializer_class   = ProductListSerializer
     permission_classes = [permissions.AllowAny]
@@ -176,6 +180,7 @@ class RecentlyViewedView(generics.ListAPIView):
         ).select_related('product__category').prefetch_related('product__images')[:20]
 
 
+@method_decorator(cache_page(60 * 5), name='dispatch')    # 5-minute cache per query
 class SearchAutocompleteView(APIView):
     permission_classes = [permissions.AllowAny]
 
