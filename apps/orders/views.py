@@ -42,20 +42,16 @@ def _deduct_order_stock(order):
 
 
 # ── Delivery fee calculator ───────────────────────────────────────────────────
-DELIVERY_RATES = {
-    'Lagos':   Decimal('1500'),
-    'Ogun':    Decimal('2000'),
-    'Oyo':     Decimal('2500'),
-    'Osun':    Decimal('2500'),
-    'Ekiti':   Decimal('2500'),
-}
-FREE_DELIVERY_THRESHOLD = Decimal('50000')
-DEFAULT_DELIVERY        = Decimal('3500')
+# Zone 1 — within Uyo LGA:             ₦2,000
+# Zone 2 — outside Uyo, Akwa Ibom:    ₦3,000
+# Zone 3 — outside Akwa Ibom (Nigeria): ₦5,000
 
-def get_delivery_fee(state: str, subtotal: Decimal) -> Decimal:
-    if subtotal >= FREE_DELIVERY_THRESHOLD:
-        return Decimal('0')
-    return DELIVERY_RATES.get(state, DEFAULT_DELIVERY)
+def get_delivery_fee(state: str, city: str, subtotal: Decimal) -> Decimal:
+    if state == 'Akwa Ibom':
+        if 'uyo' in city.lower():
+            return Decimal('2000')
+        return Decimal('3000')
+    return Decimal('5000')
 
 
 # ── Create Order ──────────────────────────────────────────────────────────────
@@ -136,7 +132,7 @@ class CreateOrderView(APIView):
                 except Exception:
                     pass  # Ignore discount errors — don't block checkout
 
-            delivery_fee = get_delivery_fee(data['delivery_state'], subtotal - discount_amount)
+            delivery_fee = get_delivery_fee(data['delivery_state'], data['delivery_city'], subtotal - discount_amount)
             total        = subtotal - discount_amount + delivery_fee
 
             # Build order kwargs — only include discount fields if columns exist
