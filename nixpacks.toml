@@ -2,4 +2,4 @@
 nixPkgs = ["python312", "gcc"]
 
 [start]
-cmd = "gunicorn softlifee.wsgi --workers 4 --threads 4 --worker-class gthread --timeout 60 --keep-alive 5 --log-file -"
+cmd = "gunicorn softlifee.wsgi --workers 2 --threads 4 --worker-class gthread --timeout 60 --keep-alive 5 --log-file -"
