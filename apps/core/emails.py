@@ -1,7 +1,23 @@
+import threading
+import logging
+
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils.html import strip_tags
+
+logger = logging.getLogger(__name__)
+
+
+def send_email_async(subject: str, to_email: str, template: str, context: dict):
+    """Send email in a background thread — never blocks the caller."""
+    def _send():
+        try:
+            send_email(subject=subject, to_email=to_email, template=template, context=context)
+        except Exception as e:
+            logger.error('Async email to %s failed: %s', to_email, e)
+
+    threading.Thread(target=_send, daemon=True).start()
 
 
 def send_email(subject: str, to_email: str, template: str, context: dict):

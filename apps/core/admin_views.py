@@ -298,21 +298,17 @@ class CustomerEmailView(View):
             messages.error(request, 'Subject and message are required.')
             return redirect(f'/admin/customers/{user_id}/email/')
 
-        try:
-            from apps.core.emails import send_email
-            send_email(
-                subject=subject,
-                to_email=customer.email,
-                template='admin_message',
-                context={
-                    'first_name': customer.first_name or 'there',
-                    'body_html':  body,
-                },
-            )
-            messages.success(request, f'Email sent to {customer.email}.')
-        except Exception as e:
-            messages.error(request, f'Failed to send email: {e}')
-
+        from apps.core.emails import send_email_async
+        send_email_async(
+            subject=subject,
+            to_email=customer.email,
+            template='admin_message',
+            context={
+                'first_name': customer.first_name or 'there',
+                'body_html':  body,
+            },
+        )
+        messages.success(request, f'Email sent to {customer.email}.')
         return redirect('/admin/customers/')
 
 
@@ -365,26 +361,24 @@ class CustomerDiscountView(View):
         )
 
         if send_email_flag:
-            try:
-                from apps.core.emails import send_email
-                from django.conf import settings as dj_settings
-                label = f'{value}%' if discount_type == 'percentage' else f'₦{float(value):,.0f}'
-                send_email(
-                    subject=f'A special discount just for you — {label} off 🎁',
-                    to_email=customer.email,
-                    template='discount_gift',
-                    context={
-                        'first_name':     customer.first_name or 'there',
-                        'code':           code,
-                        'discount_label': label,
-                        'minimum_order':  float(minimum_order),
-                        'valid_days':     days_valid,
-                        'shop_url':       f'{dj_settings.FRONTEND_URL}/shop',
-                    },
-                )
-            except Exception as e:
-                messages.warning(request, f'Discount created but email failed: {e}')
-                return redirect('/admin/customers/')
+            from apps.core.emails import send_email_async
+            from django.conf import settings as dj_settings
+            label = f'{value}%' if discount_type == 'percentage' else f'₦{float(value):,.0f}'
+            send_email_async(
+                subject=f'A special discount just for you — {label} off 🎁',
+                to_email=customer.email,
+                template='discount_gift',
+                context={
+                    'first_name':     customer.first_name or 'there',
+                    'code':           code,
+                    'discount_label': label,
+                    'minimum_order':  float(minimum_order),
+                    'valid_days':     days_valid,
+                    'shop_url':       f'{dj_settings.FRONTEND_URL}/shop',
+                },
+            )
+            messages.success(request, f'Discount code "{code}" created and email sent to {customer.email}.')
+        else:
+            messages.success(request, f'Discount code "{code}" created for {customer.email}.')
 
-        messages.success(request, f'Discount code "{code}" created for {customer.email}.')
         return redirect('/admin/customers/')

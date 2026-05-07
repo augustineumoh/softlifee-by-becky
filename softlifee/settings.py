@@ -192,6 +192,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ── Email ─────────────────────────────────────────────────────────────────────
 EMAIL_BACKEND       = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+EMAIL_TIMEOUT       = 10   # seconds — prevent SMTP from hanging the request
 EMAIL_HOST          = env('EMAIL_HOST',    default='smtp.gmail.com')
 EMAIL_PORT          = env.int('EMAIL_PORT', default=587)
 EMAIL_USE_TLS       = env.bool('EMAIL_USE_TLS', default=True)
