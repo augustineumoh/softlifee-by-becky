@@ -62,7 +62,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             'price', 'sale_price', 'active_price', 'is_on_sale',
             'discount_percent', 'sale_end',
             'badge', 'badge_display', 'primary_image',
-            'rating', 'review_count', 'in_stock', 'is_new', 'added_date',
+            'rating', 'review_count', 'in_stock', 'stock_count', 'is_new', 'added_date',
         ]
 
     def get_primary_image(self, obj):

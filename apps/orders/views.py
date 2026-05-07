@@ -5,6 +5,7 @@ import requests as req
 from decimal import Decimal
 
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -17,6 +18,27 @@ from apps.products.models import Product
 from apps.core.throttles import CheckoutThrottle
 from .models import Order, OrderItem
 from .serializers import OrderCreateSerializer, OrderSerializer
+
+
+def _deduct_order_stock(order):
+    """Deduct stock for all items in a confirmed order. Idempotent."""
+    from apps.products.models import StockHistory
+    order_note = f'Order {order.order_number}'
+    if StockHistory.objects.filter(note=order_note, action='sale').exists():
+        return
+    for item in order.items.select_related('product').all():
+        product = item.product
+        stock_before = product.stock_count
+        product.stock_count = max(0, product.stock_count - item.quantity)
+        product.save(update_fields=['stock_count', 'in_stock'])
+        StockHistory.objects.create(
+            product=product,
+            action='sale',
+            quantity_change=-item.quantity,
+            stock_before=stock_before,
+            stock_after=product.stock_count,
+            note=order_note,
+        )
 
 
 # ── Delivery fee calculator ───────────────────────────────────────────────────
@@ -46,119 +68,128 @@ class CreateOrderView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        data  = serializer.validated_data
-        items = data['items']
-
-        # Resolve products + calculate subtotal
-        order_items_data = []
-        subtotal = Decimal('0')
-
-        for item_data in items:
-            try:
-                product = Product.objects.get(slug=item_data['product_slug'], is_active=True)
-            except Product.DoesNotExist:
-                return Response(
-                    {'error': f"Product '{item_data['product_slug']}' not found."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            # Get primary image URL
-            primary_img = product.images.filter(is_primary=True).first() or product.images.first()
-            img_url = ''
-            if primary_img:
-                try:
-                    img_url = primary_img.image.url
-                except Exception:
-                    img_url = ''
-
-            item_subtotal = product.price * item_data['quantity']
-            subtotal     += item_subtotal
-
-            order_items_data.append({
-                'product':       product,
-                'product_name':  product.name,
-                'product_price': product.price,
-                'product_image': img_url,
-                'color_variant': item_data.get('color_variant', ''),
-                'size_variant':  item_data.get('size_variant', ''),
-                'quantity':      item_data['quantity'],
-                'subtotal':      item_subtotal,
-            })
-
-        # Handle discount code safely
-        discount_amount   = Decimal('0')
-        discount_code_str = data.get('discount_code', '').strip().upper()
-        applied_code      = None
-
-        if discount_code_str:
-            try:
-                from .discount import DiscountCode
-                applied_code = DiscountCode.objects.get(code=discount_code_str)
-                valid, msg   = applied_code.is_valid(user=request.user, subtotal=subtotal)
-                if valid:
-                    discount_amount = applied_code.calculate_discount(subtotal)
-                else:
-                    return Response({'error': msg}, status=status.HTTP_400_BAD_REQUEST)
-            except Exception:
-                pass  # Ignore discount errors — don't block checkout
-
-        delivery_fee = get_delivery_fee(data['delivery_state'], subtotal - discount_amount)
-        total        = subtotal - discount_amount + delivery_fee
+        data           = serializer.validated_data
+        items          = data['items']
         payment_method = data['payment_method']
 
-        # Build order kwargs — only include discount fields if columns exist
-        order_kwargs = dict(
-            user            = request.user if request.user.is_authenticated else None,
-            customer_name   = data['customer_name'],
-            customer_email  = data['customer_email'],
-            customer_phone  = data['customer_phone'],
-            delivery_address = data['delivery_address'],
-            delivery_city   = data['delivery_city'],
-            delivery_state  = data['delivery_state'],
-            delivery_notes  = data.get('delivery_notes', ''),
-            subtotal        = subtotal,
-            delivery_fee    = delivery_fee,
-            total           = total,
-            payment_method  = payment_method,
-            payment_status  = 'pending',
-        )
+        # ── Resolve products, validate stock, create order atomically ──────────
+        with transaction.atomic():
+            order_items_data = []
+            subtotal = Decimal('0')
 
-        # Try to add discount fields — if column doesn't exist yet, skip
-        try:
-            from django.db import connection
-            columns = [col.name for col in connection.introspection.get_table_description(
-                connection.cursor(), 'orders_order'
-            )]
-            if 'discount_code' in columns:
-                order_kwargs['discount_code']   = discount_code_str
-                order_kwargs['discount_amount'] = discount_amount
-        except Exception:
-            pass
+            for item_data in items:
+                try:
+                    product = Product.objects.select_for_update().get(
+                        slug=item_data['product_slug'], is_active=True
+                    )
+                except Product.DoesNotExist:
+                    return Response(
+                        {'error': f"Product '{item_data['product_slug']}' not found."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
-        # Create order
-        order = Order.objects.create(**order_kwargs)
+                # Real-time stock check
+                if product.stock_count < item_data['quantity']:
+                    avail = product.stock_count
+                    return Response(
+                        {'error': f"Only {avail} of '{product.name}' left in stock."
+                                  if avail > 0 else f"'{product.name}' is out of stock."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
-        # Create order items
-        for item_data in order_items_data:
-            OrderItem.objects.create(order=order, **item_data)
+                primary_img = product.images.filter(is_primary=True).first() or product.images.first()
+                img_url = ''
+                if primary_img:
+                    try:
+                        img_url = primary_img.image.url
+                    except Exception:
+                        img_url = ''
 
-        # Mark discount code as used
-        if applied_code:
+                item_subtotal = product.price * item_data['quantity']
+                subtotal     += item_subtotal
+
+                order_items_data.append({
+                    'product':       product,
+                    'product_name':  product.name,
+                    'product_price': product.price,
+                    'product_image': img_url,
+                    'color_variant': item_data.get('color_variant', ''),
+                    'size_variant':  item_data.get('size_variant', ''),
+                    'quantity':      item_data['quantity'],
+                    'subtotal':      item_subtotal,
+                })
+
+            # Handle discount code safely
+            discount_amount   = Decimal('0')
+            discount_code_str = data.get('discount_code', '').strip().upper()
+            applied_code      = None
+
+            if discount_code_str:
+                try:
+                    from .discount import DiscountCode
+                    applied_code = DiscountCode.objects.get(code=discount_code_str)
+                    valid, msg   = applied_code.is_valid(user=request.user, subtotal=subtotal)
+                    if valid:
+                        discount_amount = applied_code.calculate_discount(subtotal)
+                    else:
+                        return Response({'error': msg}, status=status.HTTP_400_BAD_REQUEST)
+                except Exception:
+                    pass  # Ignore discount errors — don't block checkout
+
+            delivery_fee = get_delivery_fee(data['delivery_state'], subtotal - discount_amount)
+            total        = subtotal - discount_amount + delivery_fee
+
+            # Build order kwargs — only include discount fields if columns exist
+            order_kwargs = dict(
+                user             = request.user if request.user.is_authenticated else None,
+                customer_name    = data['customer_name'],
+                customer_email   = data['customer_email'],
+                customer_phone   = data['customer_phone'],
+                delivery_address = data['delivery_address'],
+                delivery_city    = data['delivery_city'],
+                delivery_state   = data['delivery_state'],
+                delivery_notes   = data.get('delivery_notes', ''),
+                subtotal         = subtotal,
+                delivery_fee     = delivery_fee,
+                total            = total,
+                payment_method   = payment_method,
+                payment_status   = 'pending',
+            )
+
             try:
-                applied_code.apply(
-                    user=request.user if request.user.is_authenticated else None,
-                    order=order
-                )
+                from django.db import connection
+                columns = [col.name for col in connection.introspection.get_table_description(
+                    connection.cursor(), 'orders_order'
+                )]
+                if 'discount_code' in columns:
+                    order_kwargs['discount_code']   = discount_code_str
+                    order_kwargs['discount_amount'] = discount_amount
             except Exception:
                 pass
 
-        # If Pay on Delivery
-        if payment_method == 'pod':
-            order.status         = 'confirmed'
-            order.payment_status = 'pending'
-            order.save(update_fields=['status', 'payment_status'])
+            order = Order.objects.create(**order_kwargs)
 
-            # Send confirmation email
+            for item_data in order_items_data:
+                OrderItem.objects.create(order=order, **item_data)
+
+            if applied_code:
+                try:
+                    applied_code.apply(
+                        user=request.user if request.user.is_authenticated else None,
+                        order=order
+                    )
+                except Exception:
+                    pass
+
+            # POD: confirm immediately and deduct stock inside the transaction
+            if payment_method == 'pod':
+                order.status         = 'confirmed'
+                order.payment_status = 'pending'
+                order.save(update_fields=['status', 'payment_status'])
+                _deduct_order_stock(order)
+
+        # ── POD: send email and return ─────────────────────────────────────────
+        if payment_method == 'pod':
             try:
                 from apps.core.emails import send_order_confirmation_email
                 send_order_confirmation_email(order)
@@ -171,7 +202,7 @@ class CreateOrderView(APIView):
                 'message':        'Order placed successfully. Pay on delivery.',
             }, status=status.HTTP_201_CREATED)
 
-        # For card/transfer/ussd — initialise Paystack
+        # ── Card/transfer/ussd — initialise Paystack ───────────────────────────
         paystack_response = req.post(
             'https://api.paystack.co/transaction/initialize',
             headers={
@@ -242,6 +273,7 @@ class PaystackWebhookView(APIView):
                     order.save(update_fields=[
                         'payment_status', 'status', 'paystack_txn_id', 'paid_at'
                     ])
+                    _deduct_order_stock(order)
                     try:
                         from apps.core.emails import send_order_confirmation_email
                         send_order_confirmation_email(order)
@@ -278,6 +310,7 @@ class VerifyPaymentView(APIView):
                 order.save(update_fields=[
                     'payment_status', 'status', 'paystack_txn_id', 'paid_at'
                 ])
+                _deduct_order_stock(order)
                 try:
                     from apps.core.emails import send_order_confirmation_email
                     send_order_confirmation_email(order)
