@@ -210,9 +210,9 @@ if _BREVO_API_KEY:
 else:
     EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 
-ADMIN_EMAIL  = env('ADMIN_EMAIL',  default='hello@softlifeebybecky.com')
-BACKEND_URL  = env('BACKEND_URL',  default='http://localhost:8000')
-FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
+ADMIN_EMAIL  = env('ADMIN_EMAIL',  default='hello@softlifeebybecky.com').strip()
+BACKEND_URL  = env('BACKEND_URL',  default='http://localhost:8000').strip()
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173').strip()
 
 # ── Cache ─────────────────────────────────────────────────────────────────────
 # Use Redis when REDIS_URL is set (shared across all workers, survives restarts).
