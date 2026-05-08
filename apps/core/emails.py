@@ -15,7 +15,7 @@ def send_email_async(subject: str, to_email: str, template: str, context: dict):
         try:
             send_email(subject=subject, to_email=to_email, template=template, context=context)
         except Exception as e:
-            logger.error('Async email to %s failed: %s', to_email, e)
+            logger.error('Async email to %s failed: %s', to_email, e, exc_info=True)
 
     threading.Thread(target=_send, daemon=True).start()
 
