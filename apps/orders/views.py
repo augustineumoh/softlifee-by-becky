@@ -1,8 +1,11 @@
 import hmac
 import hashlib
 import json
+import logging
 import requests as req
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 
 from django.conf import settings
 from django.db import transaction
@@ -189,8 +192,8 @@ class CreateOrderView(APIView):
             try:
                 from apps.core.emails import send_order_confirmation_email
                 send_order_confirmation_email(order)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error('POD order confirmation email failed for %s: %s', order.order_number, e, exc_info=True)
 
             return Response({
                 'order':          OrderSerializer(order).data,
@@ -273,8 +276,8 @@ class PaystackWebhookView(APIView):
                     try:
                         from apps.core.emails import send_order_confirmation_email
                         send_order_confirmation_email(order)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.error('Webhook email failed for %s: %s', order.order_number, e, exc_info=True)
             except Order.DoesNotExist:
                 pass
 
@@ -310,8 +313,8 @@ class VerifyPaymentView(APIView):
                 try:
                     from apps.core.emails import send_order_confirmation_email
                     send_order_confirmation_email(order)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.error('Verify-payment email failed for %s: %s', order.order_number, e, exc_info=True)
 
         return Response(OrderSerializer(order).data)
 

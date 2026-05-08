@@ -55,13 +55,13 @@ def send_welcome_email(user):
 
 
 def send_order_confirmation_email(order):
-    send_email(
+    send_email_async(
         subject  = f'Order Confirmed — {order.order_number} ✅',
         to_email = order.customer_email,
         template = 'order_confirmation',
         context  = {
             'order':        order,
-            'items':        order.items.all(),
+            'items':        list(order.items.all()),
             'track_url':    f"{settings.FRONTEND_URL}/account/orders",
         }
     )
