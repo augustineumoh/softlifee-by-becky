@@ -361,23 +361,29 @@ class CustomerDiscountView(View):
         )
 
         if send_email_flag:
-            from apps.core.emails import send_email_async
+            from apps.core.emails import send_email
             from django.conf import settings as dj_settings
+            import logging as _logging
+            _log = _logging.getLogger(__name__)
             label = f'{value}%' if discount_type == 'percentage' else f'₦{float(value):,.0f}'
-            send_email_async(
-                subject=f'A special discount just for you — {label} off 🎁',
-                to_email=customer.email,
-                template='discount_gift',
-                context={
-                    'first_name':     customer.first_name or 'there',
-                    'code':           code,
-                    'discount_label': label,
-                    'minimum_order':  float(minimum_order),
-                    'valid_days':     days_valid,
-                    'shop_url':       f'{dj_settings.FRONTEND_URL}/shop',
-                },
-            )
-            messages.success(request, f'Discount code "{code}" created and email sent to {customer.email}.')
+            try:
+                send_email(
+                    subject=f'A special discount just for you — {label} off 🎁',
+                    to_email=customer.email,
+                    template='discount_gift',
+                    context={
+                        'first_name':     customer.first_name or 'there',
+                        'code':           code,
+                        'discount_label': label,
+                        'minimum_order':  float(minimum_order),
+                        'valid_days':     days_valid,
+                        'shop_url':       f'{dj_settings.FRONTEND_URL}/shop',
+                    },
+                )
+                messages.success(request, f'Discount code "{code}" created and email sent to {customer.email}.')
+            except Exception as exc:
+                _log.error('Discount email failed for %s: %s', customer.email, exc, exc_info=True)
+                messages.warning(request, f'Discount code "{code}" created but email failed: {exc}')
         else:
             messages.success(request, f'Discount code "{code}" created for {customer.email}.')
 
