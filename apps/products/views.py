@@ -127,19 +127,21 @@ class RelatedProductsView(generics.ListAPIView):
     def get_queryset(self):
         slug    = self.kwargs['slug']
         product = get_object_or_404(Product, slug=slug, is_active=True)
+        base_qs = Product.objects.filter(is_active=True).exclude(slug=slug).prefetch_related('images')
 
-        # Prefer subcategory matches for more specific recommendations
+        # Prefer subcategory matches
         if product.subcategory:
-            subcategory_qs = Product.objects.filter(
-                subcategory=product.subcategory, is_active=True
-            ).exclude(slug=slug).prefetch_related('images').order_by('-rating', '-review_count')
-            if subcategory_qs.count() >= 4:
-                return subcategory_qs[:8]
+            qs = base_qs.filter(subcategory=product.subcategory).order_by('-rating', '-review_count')
+            if qs.count() >= 4:
+                return qs[:8]
 
-        # Fall back to same category ordered by rating
-        return Product.objects.filter(
-            category=product.category, is_active=True
-        ).exclude(slug=slug).prefetch_related('images').order_by('-rating', '-review_count')[:8]
+        # Same category
+        qs = base_qs.filter(category=product.category).order_by('-rating', '-review_count')
+        if qs.count() >= 4:
+            return qs[:8]
+
+        # Fallback: any active products ordered by rating
+        return base_qs.order_by('-rating', '-review_count')[:8]
 
 
 # ── Wishlist ──────────────────────────────────────────────────────────────────
