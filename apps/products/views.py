@@ -123,6 +123,7 @@ class ProductDetailView(generics.RetrieveAPIView):
 class RelatedProductsView(generics.ListAPIView):
     serializer_class   = ProductListSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class   = None  # always return a plain list, never paginated
 
     def get_queryset(self):
         slug    = self.kwargs['slug']
