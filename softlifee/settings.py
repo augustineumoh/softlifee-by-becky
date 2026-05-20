@@ -183,9 +183,9 @@ PAYSTACK_SECRET_KEY = env('PAYSTACK_SECRET_KEY', default='')
 PAYSTACK_PUBLIC_KEY = env('PAYSTACK_PUBLIC_KEY', default='')
 
 # ── Bank account (for manual transfer payments) ───────────────────────────────
-BANK_ACCOUNT_NAME   = env('BANK_ACCOUNT_NAME',   default='Softlifee')
-BANK_ACCOUNT_NUMBER = env('BANK_ACCOUNT_NUMBER', default='')
-BANK_NAME           = env('BANK_NAME',           default='')
+BANK_ACCOUNT_NAME   = env('BANK_ACCOUNT_NAME',   default='Softlifee').strip()
+BANK_ACCOUNT_NUMBER = env('BANK_ACCOUNT_NUMBER', default='').strip()
+BANK_NAME           = env('BANK_NAME',           default='').strip()
 
 # ── Internationalisation ──────────────────────────────────────────────────────
 LANGUAGE_CODE = 'en-us'
