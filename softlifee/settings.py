@@ -182,6 +182,11 @@ SOCIAL_AUTH_PIPELINE = (
 PAYSTACK_SECRET_KEY = env('PAYSTACK_SECRET_KEY', default='')
 PAYSTACK_PUBLIC_KEY = env('PAYSTACK_PUBLIC_KEY', default='')
 
+# ── Bank account (for manual transfer payments) ───────────────────────────────
+BANK_ACCOUNT_NAME   = env('BANK_ACCOUNT_NAME',   default='Softlifee')
+BANK_ACCOUNT_NUMBER = env('BANK_ACCOUNT_NUMBER', default='')
+BANK_NAME           = env('BANK_NAME',           default='')
+
 # ── Internationalisation ──────────────────────────────────────────────────────
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE     = 'Africa/Lagos'

@@ -201,6 +201,25 @@ class CreateOrderView(APIView):
                 'message':        'Order placed successfully. Pay on delivery.',
             }, status=status.HTTP_201_CREATED)
 
+        # ── Manual bank transfer — reserve stock, return account details ───────
+        if payment_method == 'manual_transfer':
+            with transaction.atomic():
+                _deduct_order_stock(order)
+
+            return Response({
+                'order':          OrderSerializer(order).data,
+                'payment_method': 'manual_transfer',
+                'bank_account': {
+                    'account_name':   settings.BANK_ACCOUNT_NAME,
+                    'account_number': settings.BANK_ACCOUNT_NUMBER,
+                    'bank_name':      settings.BANK_NAME,
+                },
+                'message': (
+                    f'Transfer ₦{total:,.0f} to the account above. '
+                    f'Use your order number {order.order_number} as the transfer description.'
+                ),
+            }, status=status.HTTP_201_CREATED)
+
         # ── Card/transfer/ussd — initialise Paystack ───────────────────────────
         paystack_response = req.post(
             'https://api.paystack.co/transaction/initialize',

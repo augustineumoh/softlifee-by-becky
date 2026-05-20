@@ -14,10 +14,11 @@ class Order(models.Model):
     ]
 
     PAYMENT_METHOD_CHOICES = [
-        ('card',     'Card Payment'),
-        ('transfer', 'Bank Transfer'),
-        ('ussd',     'USSD'),
-        ('pod',      'Pay on Delivery'),
+        ('card',             'Card Payment'),
+        ('transfer',         'Bank Transfer'),
+        ('ussd',             'USSD'),
+        ('pod',              'Pay on Delivery'),
+        ('manual_transfer',  'Direct Bank Transfer'),
     ]
 
     PAYMENT_STATUS_CHOICES = [
