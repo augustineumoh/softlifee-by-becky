@@ -16,6 +16,10 @@ urlpatterns = [
     path('my-orders/',              views.OrderListView.as_view(),         name='order-list'),
     path('my-orders/<int:pk>/',     views.OrderDetailView.as_view(),       name='order-detail'),
 
+    # Manual transfer
+    path('<str:order_number>/transfer-sent/', views.TransferSentView.as_view(),  name='transfer-sent'),
+    path('<str:order_number>/status/',        views.OrderStatusView.as_view(),   name='order-status'),
+
     # Paystack
     path('webhook/paystack/',       views.PaystackWebhookView.as_view(),   name='paystack-webhook'),
     path('verify/<str:reference>/', views.VerifyPaymentView.as_view(),     name='verify-payment'),

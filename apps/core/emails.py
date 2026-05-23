@@ -100,6 +100,19 @@ def send_password_reset_email(user, reset_url: str):
     )
 
 
+def send_transfer_received_email(order):
+    send_email_async(
+        subject  = f'💸 Transfer Received — {order.order_number} (Awaiting Confirmation)',
+        to_email = settings.ADMIN_EMAIL,
+        template = 'transfer_received',
+        context  = {
+            'order':     order,
+            'items':     list(order.items.all()),
+            'admin_url': f"{settings.BACKEND_URL}/softlifee-admin/orders/order/{order.id}/change/",
+        }
+    )
+
+
 def send_low_stock_alert(product):
     send_email(
         subject  = f'⚠️ Low Stock Alert — {product.name}',

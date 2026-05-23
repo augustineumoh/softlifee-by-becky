@@ -338,6 +338,52 @@ class VerifyPaymentView(APIView):
         return Response(OrderSerializer(order).data)
 
 
+# ── Transfer Sent Notification ────────────────────────────────────────────────
+class TransferSentView(APIView):
+    """Customer clicks 'I have sent the money' — notifies admin once per order."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, order_number):
+        try:
+            order = Order.objects.get(order_number=order_number, payment_method='manual_transfer')
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.payment_status == 'paid':
+            return Response({'already_paid': True})
+
+        if not order.transfer_notified:
+            order.transfer_notified = True
+            order.save(update_fields=['transfer_notified'])
+            try:
+                from apps.core.emails import send_transfer_received_email
+                send_transfer_received_email(order)
+            except Exception as e:
+                logger.error('Transfer notification email failed for %s: %s', order.order_number, e, exc_info=True)
+
+        return Response({'notified': True})
+
+
+# ── Order Status (public polling endpoint) ────────────────────────────────────
+class OrderStatusView(APIView):
+    """Returns payment_status + order status for a given order number. No auth required."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, order_number):
+        try:
+            order = Order.objects.only(
+                'order_number', 'payment_status', 'status', 'payment_method'
+            ).get(order_number=order_number)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({
+            'order_number':   order.order_number,
+            'payment_status': order.payment_status,
+            'status':         order.status,
+        })
+
+
 # ── Order history ─────────────────────────────────────────────────────────────
 class OrderListView(generics.ListAPIView):
     serializer_class   = OrderSerializer
