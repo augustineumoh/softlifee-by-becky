@@ -18,7 +18,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from apps.products.models import Product
-from apps.core.throttles import CheckoutThrottle
+from apps.core.throttles import CheckoutThrottle, TransferThrottle
 from .models import Order, OrderItem
 from .serializers import OrderCreateSerializer, OrderSerializer
 
@@ -265,10 +265,14 @@ class PaystackWebhookView(APIView):
     authentication_classes = []
 
     def post(self, request):
+        secret = settings.PAYSTACK_SECRET_KEY
+        if not secret:
+            return Response({'error': 'Webhook not configured.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
         paystack_sig = request.headers.get('x-paystack-signature', '')
         body         = request.body
         expected_sig = hmac.new(
-            settings.PAYSTACK_SECRET_KEY.encode('utf-8'),
+            secret.encode('utf-8'),
             body,
             digestmod=hashlib.sha512
         ).hexdigest()
@@ -276,7 +280,10 @@ class PaystackWebhookView(APIView):
         if not hmac.compare_digest(paystack_sig, expected_sig):
             return Response({'error': 'Invalid signature.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        event = json.loads(body)
+        try:
+            event = json.loads(body)
+        except json.JSONDecodeError:
+            return Response({'error': 'Invalid JSON.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if event.get('event') == 'charge.success':
             data      = event['data']
@@ -342,6 +349,7 @@ class VerifyPaymentView(APIView):
 class TransferSentView(APIView):
     """Customer clicks 'I have sent the money' — notifies admin once per order."""
     permission_classes = [permissions.AllowAny]
+    throttle_classes   = [TransferThrottle]
 
     def post(self, request, order_number):
         try:
@@ -368,6 +376,7 @@ class TransferSentView(APIView):
 class OrderStatusView(APIView):
     """Returns payment_status + order status for a given order number. No auth required."""
     permission_classes = [permissions.AllowAny]
+    throttle_classes   = [TransferThrottle]
 
     def get(self, request, order_number):
         try:

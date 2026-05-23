@@ -12,7 +12,7 @@ environ.Env.read_env(BASE_DIR / '.env')
 
 SECRET_KEY    = env('SECRET_KEY')
 DEBUG         = env('DEBUG')
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
 # ── CSRF ──────────────────────────────────────────────────────────────────────
 _csrf_raw = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
@@ -127,17 +127,30 @@ REST_FRAMEWORK = {
         'checkout':             '30/hour',
         'return_request':       '10/hour',
         'newsletter_subscribe': '10/hour',
+        'transfer':             '20/hour',    # order-status polling + transfer-sent notify
     },
 }
 
 # ── JWT ───────────────────────────────────────────────────────────────────────
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME':    timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME':    timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME':   timedelta(days=30),
     'ROTATE_REFRESH_TOKENS':    False,
     'BLACKLIST_AFTER_ROTATION': False,
     'AUTH_HEADER_TYPES':        ('Bearer',),
 }
+
+# ── HTTPS / Security headers (production only) ────────────────────────────────
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER       = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT           = True
+    SECURE_HSTS_SECONDS           = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SESSION_COOKIE_SECURE         = True
+    CSRF_COOKIE_SECURE            = True
+    SECURE_BROWSER_XSS_FILTER     = True
+    SECURE_CONTENT_TYPE_NOSNIFF   = True
+    X_FRAME_OPTIONS               = 'DENY'
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 _cors_raw = os.environ.get('CORS_ALLOWED_ORIGINS', '')
@@ -179,7 +192,7 @@ SOCIAL_AUTH_PIPELINE = (
 )
 
 # ── Paystack ──────────────────────────────────────────────────────────────────
-PAYSTACK_SECRET_KEY = env('PAYSTACK_SECRET_KEY', default='')
+PAYSTACK_SECRET_KEY = env('PAYSTACK_SECRET_KEY', default='')  # empty = webhook sig check always fails safely
 PAYSTACK_PUBLIC_KEY = env('PAYSTACK_PUBLIC_KEY', default='')
 
 # ── Bank account (for manual transfer payments) ───────────────────────────────

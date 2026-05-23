@@ -61,8 +61,8 @@ class DiscountCode(models.Model):
         return round(discount, 2)
 
     def apply(self, user=None, order=None):
-        self.usage_count += 1
-        self.save(update_fields=['usage_count'])
+        from django.db.models import F
+        DiscountCode.objects.filter(pk=self.pk).update(usage_count=F('usage_count') + 1)
         if user and user.is_authenticated:
             DiscountUsage.objects.create(code=self, user=user, order=order)
 
