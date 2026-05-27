@@ -43,7 +43,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_display        = ['name', 'category', 'price', 'badge', 'inventory_status',
                            'stock_count', 'rating', 'review_count', 'is_active', 'added_date']
     list_filter         = ['category', 'badge', 'in_stock', 'is_active', 'added_date']
-    list_editable       = ['price', 'stock_count', 'is_active']
+    list_editable       = ['price', 'is_active']
     search_fields       = ['name', 'description']
     prepopulated_fields = {'slug': ('name',)}
     ordering            = ['-created_at']
