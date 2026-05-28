@@ -139,6 +139,8 @@ class ColorVariant(models.Model):
     hex_code    = models.CharField(max_length=7)    # e.g. "#8FAF8F"
     image       = CloudinaryField('image')
     is_active   = models.BooleanField(default=True)
+    stock_count = models.PositiveIntegerField(default=0)
+    in_stock    = models.BooleanField(default=True)
     order       = models.PositiveIntegerField(default=0)
 
     class Meta:

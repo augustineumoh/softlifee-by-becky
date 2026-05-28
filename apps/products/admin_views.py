@@ -182,11 +182,13 @@ class AdminColorVariantView(APIView):
         result = cloudinary.uploader.upload(file, folder='softlifee/products/colors', resource_type='image')
 
         variant = ColorVariant.objects.create(
-            product  = product,
-            label    = serializer.validated_data['label'],
-            hex_code = serializer.validated_data['hex_code'],
-            image    = result['public_id'],
-            order    = serializer.validated_data.get('order', 0),
+            product     = product,
+            label       = serializer.validated_data['label'],
+            hex_code    = serializer.validated_data['hex_code'],
+            image       = result['public_id'],
+            in_stock    = serializer.validated_data.get('in_stock', True),
+            stock_count = serializer.validated_data.get('stock_count', 0),
+            order       = serializer.validated_data.get('order', 0),
         )
 
         return Response({
@@ -225,12 +227,24 @@ class AdminColorVariantDetailView(APIView):
             variant.hex_code = data['hex_code']
         if 'order' in data:
             variant.order = data['order']
+        if 'in_stock' in data:
+            variant.in_stock = data['in_stock']
+        if 'stock_count' in data:
+            variant.stock_count = data['stock_count']
+            variant.in_stock = data['stock_count'] > 0
         if 'image' in data:
             result = cloudinary.uploader.upload(data['image'], folder='softlifee/products/colors', resource_type='image')
             variant.image = result['public_id']
 
         variant.save()
-        return Response({'id': variant.id, 'label': variant.label, 'hex_code': variant.hex_code, 'order': variant.order})
+        return Response({
+            'id':          variant.id,
+            'label':       variant.label,
+            'hex_code':    variant.hex_code,
+            'in_stock':    variant.in_stock,
+            'stock_count': variant.stock_count,
+            'order':       variant.order,
+        })
 
     def delete(self, request, pk):
         variant = self.get_object(pk)

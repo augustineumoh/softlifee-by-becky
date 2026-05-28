@@ -70,17 +70,21 @@ class ImageUploadSerializer(serializers.Serializer):
 
 
 class ColorVariantSerializer(serializers.Serializer):
-    label    = serializers.CharField(max_length=50)
-    hex_code = serializers.CharField(max_length=7)
-    image    = serializers.ImageField()
-    order    = serializers.IntegerField(min_value=0, required=False, default=0)
+    label       = serializers.CharField(max_length=50)
+    hex_code    = serializers.CharField(max_length=7)
+    image       = serializers.ImageField()
+    in_stock    = serializers.BooleanField(required=False, default=True)
+    stock_count = serializers.IntegerField(min_value=0, required=False, default=0)
+    order       = serializers.IntegerField(min_value=0, required=False, default=0)
 
 
 class ColorVariantUpdateSerializer(serializers.Serializer):
-    label    = serializers.CharField(max_length=50, required=False)
-    hex_code = serializers.CharField(max_length=7, required=False)
-    image    = serializers.ImageField(required=False)
-    order    = serializers.IntegerField(min_value=0, required=False)
+    label       = serializers.CharField(max_length=50, required=False)
+    hex_code    = serializers.CharField(max_length=7, required=False)
+    image       = serializers.ImageField(required=False)
+    in_stock    = serializers.BooleanField(required=False)
+    stock_count = serializers.IntegerField(min_value=0, required=False)
+    order       = serializers.IntegerField(min_value=0, required=False)
 
 
 class SizeVariantSerializer(serializers.Serializer):

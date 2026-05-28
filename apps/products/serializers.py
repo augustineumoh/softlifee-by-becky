@@ -59,7 +59,7 @@ class ColorVariantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = ColorVariant
-        fields = ['id', 'label', 'hex_code', 'image', 'order']
+        fields = ['id', 'label', 'hex_code', 'image', 'in_stock', 'stock_count', 'order']
 
     def get_image(self, obj):
         return _cloudinary_url(str(obj.image)) if obj.image else None
