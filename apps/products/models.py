@@ -149,6 +149,11 @@ class ColorVariant(models.Model):
     def __str__(self):
         return f'{self.product.name} — {self.label}'
 
+    def save(self, *args, **kwargs):
+        if self.stock_count is not None:
+            self.in_stock = self.stock_count > 0
+        super().save(*args, **kwargs)
+
 
 class ProductVideo(models.Model):
     product     = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='videos')
