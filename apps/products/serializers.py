@@ -1,8 +1,28 @@
 from rest_framework import serializers
+from django.conf import settings
 from .models import (
     Category, Subcategory, Product, ProductImage,
     ColorVariant, ProductVideo, Wishlist, RecentlyViewed, SizeVariant
 )
+
+
+def _cloudinary_url(raw: str) -> str:
+    """Convert a Cloudinary stored path to a full https:// URL.
+
+    cloudinary_storage saves paths as 'image/upload/{public_id}' (with or
+    without a version prefix).  We strip the 'image/upload/' segment and
+    re-build a delivery URL with sensible defaults so the frontend never
+    needs to know the cloud name.
+    """
+    if not raw:
+        return ''
+    if raw.startswith('http'):
+        return raw
+    cloud = settings.CLOUDINARY_STORAGE.get('CLOUD_NAME', '')
+    if not cloud:
+        return raw
+    public_id = raw.removeprefix('image/upload/')
+    return f'https://res.cloudinary.com/{cloud}/image/upload/q_auto,f_auto/{public_id}'
 
 
 class SubcategorySerializer(serializers.ModelSerializer):
@@ -13,28 +33,47 @@ class SubcategorySerializer(serializers.ModelSerializer):
 
 class CategorySerializer(serializers.ModelSerializer):
     subcategories = SubcategorySerializer(many=True, read_only=True)
+    image         = serializers.SerializerMethodField()
 
     class Meta:
         model  = Category
         fields = ['id', 'name', 'slug', 'description', 'image', 'subcategories']
 
+    def get_image(self, obj):
+        return _cloudinary_url(str(obj.image)) if obj.image else None
+
 
 class ProductImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model  = ProductImage
         fields = ['id', 'image', 'alt_text', 'is_primary', 'order']
 
+    def get_image(self, obj):
+        return _cloudinary_url(str(obj.image)) if obj.image else None
+
 
 class ColorVariantSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model  = ColorVariant
         fields = ['id', 'label', 'hex_code', 'image', 'order']
 
+    def get_image(self, obj):
+        return _cloudinary_url(str(obj.image)) if obj.image else None
+
 
 class ProductVideoSerializer(serializers.ModelSerializer):
+    poster = serializers.SerializerMethodField()
+
     class Meta:
         model  = ProductVideo
         fields = ['id', 'video_url', 'poster', 'order']
+
+    def get_poster(self, obj):
+        return _cloudinary_url(str(obj.poster)) if obj.poster else None
 
 
 class SizeVariantSerializer(serializers.ModelSerializer):
