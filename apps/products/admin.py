@@ -30,7 +30,7 @@ class ProductImageInline(admin.TabularInline):
 class ColorVariantInline(admin.TabularInline):
     model  = ColorVariant
     extra  = 1
-    fields = ['label', 'hex_code', 'image', 'order', 'is_active']
+    fields = ['label', 'hex_code', 'image', 'stock_count', 'in_stock', 'order', 'is_active']
 
 
 class ProductVideoInline(admin.TabularInline):
