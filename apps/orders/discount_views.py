@@ -11,7 +11,7 @@ class ValidateDiscountCodeView(APIView):
     Body: { "code": "SAVE10", "subtotal": 25000 }
     Returns discount amount if valid.
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         code_str = request.data.get('code', '').strip().upper()
