@@ -157,7 +157,8 @@ class ColorVariant(models.Model):
 
 class ProductVideo(models.Model):
     product     = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='videos')
-    video_url   = models.URLField()                             # Cloudinary or YouTube URL
+    video_url   = models.URLField(blank=True, null=True)
+    video_file  = CloudinaryField('video', resource_type='video', blank=True, null=True)
     poster      = CloudinaryField('poster', blank=True, null=True)
     order       = models.PositiveIntegerField(default=0)
 
@@ -166,6 +167,12 @@ class ProductVideo(models.Model):
 
     def __str__(self):
         return f'{self.product.name} — video {self.order}'
+
+    def get_video_url(self):
+        if self.video_file:
+            import cloudinary
+            return cloudinary.CloudinaryVideo(str(self.video_file)).build_url()
+        return self.video_url
 
 
 class Wishlist(models.Model):

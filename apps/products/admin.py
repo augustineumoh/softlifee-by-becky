@@ -36,7 +36,7 @@ class ColorVariantInline(admin.TabularInline):
 class ProductVideoInline(admin.TabularInline):
     model  = ProductVideo
     extra  = 1
-    fields = ['video_url', 'poster', 'order']
+    fields = ['video_file', 'video_url', 'poster', 'order']
 
 
 class ProductAdmin(admin.ModelAdmin):

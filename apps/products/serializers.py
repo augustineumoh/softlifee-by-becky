@@ -66,7 +66,8 @@ class ColorVariantSerializer(serializers.ModelSerializer):
 
 
 class ProductVideoSerializer(serializers.ModelSerializer):
-    poster = serializers.SerializerMethodField()
+    poster    = serializers.SerializerMethodField()
+    video_url = serializers.SerializerMethodField()
 
     class Meta:
         model  = ProductVideo
@@ -74,6 +75,9 @@ class ProductVideoSerializer(serializers.ModelSerializer):
 
     def get_poster(self, obj):
         return _cloudinary_url(str(obj.poster)) if obj.poster else None
+
+    def get_video_url(self, obj):
+        return obj.get_video_url()
 
 
 class SizeVariantSerializer(serializers.ModelSerializer):
