@@ -1,9 +1,11 @@
+from django import forms
 from django.contrib import admin
 from django.utils.html import format_html, mark_safe
 from .models import (
     Category, Subcategory, Product, ProductImage,
     ColorVariant, ProductVideo, Wishlist, StockHistory,
 )
+from .widgets import CloudinaryVideoWidget
 from apps.core.admin_site import softlifee_admin
 
 
@@ -33,10 +35,23 @@ class ColorVariantInline(admin.TabularInline):
     fields = ['label', 'hex_code', 'image', 'stock_count', 'in_stock', 'order', 'is_active']
 
 
+class ProductVideoForm(forms.ModelForm):
+    class Meta:
+        model   = ProductVideo
+        fields  = ['video_url', 'poster', 'order']
+        widgets = {
+            'video_url': CloudinaryVideoWidget(attrs={
+                'size': '55',
+                'placeholder': 'or paste a YouTube / Cloudinary URL…',
+            }),
+        }
+
+
 class ProductVideoInline(admin.TabularInline):
     model  = ProductVideo
+    form   = ProductVideoForm
     extra  = 1
-    fields = ['video_file', 'video_url', 'poster', 'order']
+    fields = ['video_url', 'poster', 'order']
 
 
 class ProductAdmin(admin.ModelAdmin):
