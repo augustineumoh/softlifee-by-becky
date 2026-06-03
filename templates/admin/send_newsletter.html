@@ -92,11 +92,22 @@
     </div>
   </div>
 
-  <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:24px">
+  <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px">
     <strong>⚠️ Heads up:</strong> This will immediately send to all {{ active_count }} active subscriber(s). There is no undo.
   </div>
 
-  <input type="submit" value="Send Newsletter →"
+  <!-- No-image warning — shown dynamically -->
+  <div id="no_image_warning" style="display:none;background:#FFF1F2;border:2px solid #BE123C;border-radius:8px;padding:12px 16px;margin-bottom:16px">
+    <strong style="color:#BE123C">📷 No product image selected!</strong>
+    <span style="color:#BE123C;font-size:13px;margin-left:6px">
+      Go back to <strong>Step 1</strong> and pick a product — or tick the box below to send without an image.
+    </span><br/>
+    <label style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;cursor:pointer">
+      <input type="checkbox" id="confirm_no_image"> I deliberately want to send without a product image
+    </label>
+  </div>
+
+  <input type="submit" id="submit_btn" value="Send Newsletter →"
     style="background:#8A4FB1;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.5px">
   <a href="{% url 'softlifee_admin:newsletter_newslettersubscriber_changelist' %}"
     style="margin-left:16px;color:#666;font-size:14px">Cancel</a>
@@ -150,6 +161,7 @@
     removeInjectedImage();
     imgField.value        = '';
     preview.style.display = 'none';
+    updateImageWarning();
 
     if (!slug) return;
 
@@ -164,13 +176,52 @@
       prevName.textContent   = selected.name;
       preview.style.display  = 'flex';
     } else {
-      alert('This product has no image uploaded yet. Add an image in the Products admin first.');
+      alert('⚠️ "' + selected.name + '" has no image uploaded yet.\nGo to Products admin and add a primary image first.');
     }
 
     // Auto-fill CTA if empty
     if (!ctaUrl.value.trim()) {
       ctaUrl.value = 'https://softlifeebybecky.com/product/' + selected.slug;
     }
+
+    updateImageWarning();
+  });
+
+  // Show/hide the no-image warning based on whether body has an img tag
+  var noImgWarning   = document.getElementById('no_image_warning');
+  var confirmNoImage = document.getElementById('confirm_no_image');
+  var submitBtn      = document.getElementById('submit_btn');
+
+  function hasImageInBody() {
+    return bodyField.value.indexOf('<img') !== -1;
+  }
+
+  function updateImageWarning() {
+    if (!hasImageInBody()) {
+      noImgWarning.style.display = 'block';
+    } else {
+      noImgWarning.style.display = 'none';
+      confirmNoImage.checked     = false;
+    }
+  }
+
+  bodyField.addEventListener('input', updateImageWarning);
+
+  document.querySelector('form').addEventListener('submit', function(e) {
+    if (!hasImageInBody() && !confirmNoImage.checked) {
+      e.preventDefault();
+      noImgWarning.style.display = 'block';
+      noImgWarning.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      noImgWarning.style.animation = 'shake 0.4s';
+    }
   });
 </script>
+
+<style>
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%,60%  { transform: translateX(-6px); }
+  40%,80%  { transform: translateX(6px); }
+}
+</style>
 {% endblock %}
