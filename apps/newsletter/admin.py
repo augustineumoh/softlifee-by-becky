@@ -56,10 +56,26 @@ class NewsletterSubscriberAdmin(ModelAdmin):
             return redirect('softlifee_admin:newsletter_newslettersubscriber_changelist')
 
         active_count = NewsletterSubscriber.objects.filter(is_active=True).count()
+
+        from apps.products.models import Product
+        import json
+        products_qs = Product.objects.filter(is_active=True).prefetch_related('images').order_by('name')
+        products_data = []
+        for p in products_qs:
+            primary = p.images.filter(is_primary=True).first() or p.images.first()
+            img_url = ''
+            if primary:
+                try:
+                    img_url = primary.image.url
+                except Exception:
+                    pass
+            products_data.append({'id': p.id, 'name': p.name, 'slug': p.slug, 'image_url': img_url})
+
         context = {
             **softlifee_admin.each_context(request),
             'title': 'Send Newsletter',
             'active_count': active_count,
+            'products_json': json.dumps(products_data),
         }
         return render(request, 'admin/send_newsletter.html', context)
 

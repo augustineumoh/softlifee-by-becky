@@ -35,6 +35,30 @@
       style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px">
   </div>
 
+  <!-- Product picker -->
+  <div style="margin-bottom:20px;background:#f9f0ff;border:1px solid #d8b4fe;border-radius:8px;padding:16px">
+    <label style="display:block;font-weight:bold;margin-bottom:8px">
+      🛍️ Feature a Product (optional)
+    </label>
+    <p style="font-size:13px;color:#555;margin-bottom:10px">
+      Select a product to automatically add its image and shop link to the newsletter.
+    </p>
+    <select id="product_picker"
+      style="width:100%;padding:10px 12px;border:1px solid #c4b5fd;border-radius:6px;font-size:14px;background:#fff">
+      <option value="">— No product / general newsletter —</option>
+    </select>
+
+    <!-- Preview of selected product image -->
+    <div id="product_preview" style="display:none;margin-top:12px;text-align:center">
+      <img id="product_preview_img" src="" alt=""
+        style="max-height:160px;max-width:260px;border-radius:8px;border:1px solid #d8b4fe;object-fit:cover" />
+      <p id="product_preview_name" style="font-size:13px;font-weight:bold;color:#6d28d9;margin-top:6px"></p>
+    </div>
+  </div>
+
+  <!-- Hidden field that actually gets submitted -->
+  <input type="hidden" id="product_image_url" name="product_image_url" value="">
+
   <div style="margin-bottom:20px">
     <label for="body_html" style="display:block;font-weight:bold;margin-bottom:6px">
       Email Body (HTML allowed) *
@@ -43,16 +67,6 @@
       placeholder="<p>Your message here. You can use basic HTML like &lt;strong&gt;, &lt;p&gt;, &lt;br&gt;.</p>"
       style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;font-family:monospace"></textarea>
     <small style="color:#888">Tip: wrap paragraphs in &lt;p&gt; tags. Basic HTML is safe.</small>
-  </div>
-
-  <div style="margin-bottom:20px">
-    <label for="product_image_url" style="display:block;font-weight:bold;margin-bottom:6px">
-      Product Image URL (optional)
-    </label>
-    <input type="url" id="product_image_url" name="product_image_url"
-      placeholder="https://res.cloudinary.com/... (paste the product image URL)"
-      style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px">
-    <small style="color:#888">Leave blank if this newsletter is not about a specific product.</small>
   </div>
 
   <div style="margin-bottom:20px;display:flex;gap:16px">
@@ -84,4 +98,46 @@
   <a href="{% url 'softlifee_admin:newsletter_newslettersubscriber_changelist' %}"
     style="margin-left:16px;color:#666;font-size:14px">Cancel</a>
 </form>
+
+<script>
+  const PRODUCTS = {{ products_json|safe }};
+  const picker   = document.getElementById('product_picker');
+  const imgField = document.getElementById('product_image_url');
+  const ctaUrl   = document.getElementById('cta_url');
+  const preview  = document.getElementById('product_preview');
+  const prevImg  = document.getElementById('product_preview_img');
+  const prevName = document.getElementById('product_preview_name');
+
+  // Populate the dropdown
+  PRODUCTS.forEach(function(p) {
+    var opt = document.createElement('option');
+    opt.value = p.slug;
+    opt.dataset.imageUrl = p.image_url;
+    opt.dataset.name     = p.name;
+    opt.textContent      = p.name;
+    picker.appendChild(opt);
+  });
+
+  picker.addEventListener('change', function() {
+    var slug = this.value;
+    if (!slug) {
+      imgField.value   = '';
+      preview.style.display = 'none';
+      return;
+    }
+    var selected = PRODUCTS.find(function(p) { return p.slug === slug; });
+    if (selected) {
+      imgField.value        = selected.image_url;
+      prevImg.src           = selected.image_url;
+      prevImg.alt           = selected.name;
+      prevName.textContent  = selected.name;
+      preview.style.display = 'block';
+
+      // Auto-fill CTA link if it's still empty
+      if (!ctaUrl.value.trim()) {
+        ctaUrl.value = 'https://softlifeebybecky.com/product/' + selected.slug;
+      }
+    }
+  });
+</script>
 {% endblock %}
