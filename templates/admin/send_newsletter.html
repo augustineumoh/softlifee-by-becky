@@ -17,6 +17,33 @@
 <form method="post" style="max-width:720px">
   {% csrf_token %}
 
+  <!-- ── STEP 1: pick a product (optional) ───────────────────────────────── -->
+  <div style="margin-bottom:24px;background:#f9f0ff;border:2px solid #8A4FB1;border-radius:8px;padding:16px">
+    <label style="display:block;font-weight:bold;font-size:15px;margin-bottom:6px;color:#5B21B6">
+      🛍️ Step 1 — Feature a Product <span style="font-weight:normal;font-size:12px;color:#888">(optional)</span>
+    </label>
+    <p style="font-size:13px;color:#555;margin-bottom:10px">
+      Selecting a product <strong>automatically inserts its image</strong> into the email body below.
+    </p>
+    <select id="product_picker"
+      style="width:100%;padding:10px 12px;border:1px solid #c4b5fd;border-radius:6px;font-size:14px;background:#fff">
+      <option value="">— General newsletter (no product image) —</option>
+    </select>
+
+    <div id="product_preview" style="display:none;margin-top:12px;display:none;align-items:center;gap:12px;background:#fff;border:1px solid #d8b4fe;border-radius:8px;padding:10px">
+      <img id="product_preview_img" src="" alt=""
+        style="height:70px;width:70px;border-radius:6px;object-fit:cover;flex-shrink:0" />
+      <div>
+        <p id="product_preview_name" style="font-size:13px;font-weight:bold;color:#6d28d9;margin:0 0 2px"></p>
+        <p style="font-size:12px;color:#888;margin:0">Image inserted into email body ✓</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- hidden field so backend still receives the URL -->
+  <input type="hidden" id="product_image_url" name="product_image_url" value="">
+
+  <!-- ── STEP 2: fill in the rest ─────────────────────────────────────────── -->
   <div style="margin-bottom:20px">
     <label for="subject" style="display:block;font-weight:bold;margin-bottom:6px">
       Email Subject *
@@ -35,44 +62,15 @@
       style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px">
   </div>
 
-  <!-- Product picker -->
-  <div style="margin-bottom:20px;background:#f9f0ff;border:1px solid #d8b4fe;border-radius:8px;padding:16px">
-    <label style="display:block;font-weight:bold;margin-bottom:8px">
-      🛍️ Feature a Product (optional)
-    </label>
-    <p style="font-size:13px;color:#555;margin-bottom:10px">
-      Select a product to automatically add its image and shop link to the newsletter.
-    </p>
-    <select id="product_picker"
-      style="width:100%;padding:10px 12px;border:1px solid #c4b5fd;border-radius:6px;font-size:14px;background:#fff">
-      <option value="">— No product / general newsletter —</option>
-    </select>
-
-    <!-- Preview of selected product image -->
-    <div id="product_preview" style="display:none;margin-top:12px;text-align:center">
-      <img id="product_preview_img" src="" alt=""
-        style="max-height:160px;max-width:260px;border-radius:8px;border:1px solid #d8b4fe;object-fit:cover" />
-      <p id="product_preview_name" style="font-size:13px;font-weight:bold;color:#6d28d9;margin-top:6px"></p>
-    </div>
-
-    <div style="margin-top:12px">
-      <label for="product_image_url" style="display:block;font-size:12px;color:#666;margin-bottom:4px">
-        Or paste an image URL directly:
-      </label>
-      <input type="url" id="product_image_url" name="product_image_url" value=""
-        placeholder="https://res.cloudinary.com/... (auto-filled when you pick a product above)"
-        style="width:100%;padding:8px 10px;border:1px solid #c4b5fd;border-radius:6px;font-size:13px;color:#333">
-    </div>
-  </div>
-
   <div style="margin-bottom:20px">
     <label for="body_html" style="display:block;font-weight:bold;margin-bottom:6px">
-      Email Body (HTML allowed) *
+      Email Body *
+      <span style="font-weight:normal;font-size:12px;color:#888"> — product image is auto-inserted here when you pick one above</span>
     </label>
-    <textarea id="body_html" name="body_html" required rows="8"
+    <textarea id="body_html" name="body_html" required rows="10"
       placeholder="<p>Your message here. You can use basic HTML like &lt;strong&gt;, &lt;p&gt;, &lt;br&gt;.</p>"
       style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;font-family:monospace"></textarea>
-    <small style="color:#888">Tip: wrap paragraphs in &lt;p&gt; tags. Basic HTML is safe.</small>
+    <small style="color:#888">Tip: wrap paragraphs in &lt;p&gt; tags. The product image tag is added automatically — don't type it manually.</small>
   </div>
 
   <div style="margin-bottom:20px;display:flex;gap:16px">
@@ -95,8 +93,7 @@
   </div>
 
   <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:24px">
-    <strong>⚠️ Heads up:</strong> This will immediately send to all {{ active_count }} active subscriber(s).
-    There is no undo. Preview carefully before sending.
+    <strong>⚠️ Heads up:</strong> This will immediately send to all {{ active_count }} active subscriber(s). There is no undo.
   </div>
 
   <input type="submit" value="Send Newsletter →"
@@ -106,43 +103,73 @@
 </form>
 
 <script>
-  const PRODUCTS = {{ products_json|safe }};
-  const picker   = document.getElementById('product_picker');
-  const imgField = document.getElementById('product_image_url');
-  const ctaUrl   = document.getElementById('cta_url');
-  const preview  = document.getElementById('product_preview');
-  const prevImg  = document.getElementById('product_preview_img');
-  const prevName = document.getElementById('product_preview_name');
+  var PRODUCTS    = {{ products_json|safe }};
+  var picker      = document.getElementById('product_picker');
+  var imgField    = document.getElementById('product_image_url');
+  var bodyField   = document.getElementById('body_html');
+  var ctaUrl      = document.getElementById('cta_url');
+  var preview     = document.getElementById('product_preview');
+  var prevImg     = document.getElementById('product_preview_img');
+  var prevName    = document.getElementById('product_preview_name');
 
-  // Populate the dropdown
+  var IMG_START   = '<!-- product-image-start -->';
+  var IMG_END     = '<!-- product-image-end -->';
+
+  // Populate dropdown
   PRODUCTS.forEach(function(p) {
     var opt = document.createElement('option');
-    opt.value = p.slug;
-    opt.dataset.imageUrl = p.image_url;
-    opt.dataset.name     = p.name;
-    opt.textContent      = p.name;
+    opt.value       = p.slug;
+    opt.textContent = p.name + (p.image_url ? '' : ' (no image)');
     picker.appendChild(opt);
   });
 
+  function removeInjectedImage() {
+    var body = bodyField.value;
+    var start = body.indexOf(IMG_START);
+    var end   = body.indexOf(IMG_END);
+    if (start !== -1 && end !== -1) {
+      bodyField.value = body.slice(0, start) + body.slice(end + IMG_END.length);
+    }
+  }
+
+  function injectImage(url, productName) {
+    removeInjectedImage();
+    var imgHtml = IMG_START +
+      '<p style="text-align:center;margin:16px 0;">' +
+        '<img src="' + url + '" alt="' + productName + '" ' +
+        'style="max-width:100%;max-height:400px;border-radius:12px;object-fit:cover;border:1px solid rgba(138,79,177,0.15);" />' +
+      '</p>' +
+      IMG_END + '\n';
+    bodyField.value = imgHtml + bodyField.value;
+  }
+
   picker.addEventListener('change', function() {
     var slug = this.value;
-    if (!slug) {
-      imgField.value   = '';
-      preview.style.display = 'none';
-      return;
-    }
-    var selected = PRODUCTS.find(function(p) { return p.slug === slug; });
-    if (selected) {
-      imgField.value        = selected.image_url;
-      prevImg.src           = selected.image_url;
-      prevImg.alt           = selected.name;
-      prevName.textContent  = selected.name;
-      preview.style.display = 'block';
 
-      // Auto-fill CTA link if it's still empty
-      if (!ctaUrl.value.trim()) {
-        ctaUrl.value = 'https://softlifeebybecky.com/product/' + selected.slug;
-      }
+    // Clear previous
+    removeInjectedImage();
+    imgField.value        = '';
+    preview.style.display = 'none';
+
+    if (!slug) return;
+
+    var selected = PRODUCTS.find(function(p) { return p.slug === slug; });
+    if (!selected) return;
+
+    if (selected.image_url) {
+      injectImage(selected.image_url, selected.name);
+      imgField.value         = selected.image_url;
+      prevImg.src            = selected.image_url;
+      prevImg.alt            = selected.name;
+      prevName.textContent   = selected.name;
+      preview.style.display  = 'flex';
+    } else {
+      alert('This product has no image uploaded yet. Add an image in the Products admin first.');
+    }
+
+    // Auto-fill CTA if empty
+    if (!ctaUrl.value.trim()) {
+      ctaUrl.value = 'https://softlifeebybecky.com/product/' + selected.slug;
     }
   });
 </script>
