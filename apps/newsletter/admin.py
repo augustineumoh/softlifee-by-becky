@@ -43,11 +43,13 @@ class NewsletterSubscriberAdmin(ModelAdmin):
             # Auto-detect product image if none was provided via the picker
             if not product_image_url and '<img' not in body_html:
                 from apps.products.models import Product
-                body_lower = body_html.lower()
+                from django.conf import settings as django_settings
+                # Normalise &amp; so HTML-encoded bodies still match product names
+                body_lower = body_html.lower().replace('&amp;', '&')
                 products_qs = (
                     Product.objects.filter(is_active=True)
                     .prefetch_related('images')
-                    .order_by('-name')
+                    .order_by('name')
                 )
                 for product in products_qs:
                     if product.name.lower() in body_lower:
@@ -59,7 +61,14 @@ class NewsletterSubscriberAdmin(ModelAdmin):
                             try:
                                 product_image_url = primary.image.url
                             except Exception:
-                                pass
+                                # Fallback: build Cloudinary URL directly
+                                cloud = getattr(django_settings, 'CLOUDINARY_CLOUD_NAME', '')
+                                public_id = str(primary.image)
+                                if cloud and public_id:
+                                    product_image_url = (
+                                        f'https://res.cloudinary.com/{cloud}'
+                                        f'/image/upload/{public_id}'
+                                    )
                         break
 
             subscribers = NewsletterSubscriber.objects.filter(is_active=True)
@@ -71,7 +80,10 @@ class NewsletterSubscriberAdmin(ModelAdmin):
 
             try:
                 send_newsletter_blast(subscribers, subject, heading, body_html, cta_label, cta_url, product_image_url)
-                messages.success(request, f'Newsletter sent to {count} subscriber(s).')
+                if product_image_url:
+                    messages.success(request, f'Newsletter sent to {count} subscriber(s). ✅ Product image included: {product_image_url[:80]}...')
+                else:
+                    messages.warning(request, f'Newsletter sent to {count} subscriber(s). ⚠️ No product image was found — email sent without image. Check that the product name in the body matches exactly.')
             except Exception as e:
                 messages.error(request, f'Error sending newsletter: {e}')
 
