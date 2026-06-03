@@ -4,9 +4,10 @@
 <p>Hi {{ name }},</p>
 
 {% if product_image_url %}
-<div style="text-align:center;margin:20px 0;">
+<div style="text-align:center;margin:20px 0 24px;">
   <img src="{{ product_image_url }}" alt="{{ heading }}"
-       style="max-width:100%;max-height:380px;border-radius:12px;object-fit:cover;border:1px solid rgba(138,79,177,0.12);" />
+       width="500"
+       style="max-width:100%;height:auto;border-radius:12px;display:block;margin:0 auto;border:1px solid rgba(138,79,177,0.15);" />
 </div>
 {% endif %}
 

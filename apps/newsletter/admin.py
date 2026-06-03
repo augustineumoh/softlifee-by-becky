@@ -40,6 +40,28 @@ class NewsletterSubscriberAdmin(ModelAdmin):
                 messages.error(request, 'Subject, heading, and body are required.')
                 return redirect('softlifee_admin:send_newsletter')
 
+            # Auto-detect product image if none was provided via the picker
+            if not product_image_url and '<img' not in body_html:
+                from apps.products.models import Product
+                body_lower = body_html.lower()
+                products_qs = (
+                    Product.objects.filter(is_active=True)
+                    .prefetch_related('images')
+                    .order_by('-name')
+                )
+                for product in products_qs:
+                    if product.name.lower() in body_lower:
+                        primary = (
+                            product.images.filter(is_primary=True).first()
+                            or product.images.first()
+                        )
+                        if primary:
+                            try:
+                                product_image_url = primary.image.url
+                            except Exception:
+                                pass
+                        break
+
             subscribers = NewsletterSubscriber.objects.filter(is_active=True)
             count = subscribers.count()
 
