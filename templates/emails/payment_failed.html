@@ -1,0 +1,39 @@
+{% extends "emails/base.html" %}
+{% block content %}
+
+<h1>❌ Payment Not Confirmed</h1>
+
+<p>Hi {{ order.customer_name }},</p>
+
+<p>
+  Unfortunately, we were <strong>unable to confirm your payment</strong> for order
+  <span class="highlight">{{ order.order_number }}</span>.
+  This can happen if the transfer was not received in our account.
+</p>
+
+<div class="info-box">
+  <p><strong>Order Number:</strong> {{ order.order_number }}</p>
+  <p><strong>Amount:</strong> <span class="gold">&#8358;{{ order.total|floatformat:0 }}</span></p>
+  <p><strong>Status:</strong> <span style="color:#BE123C;font-weight:700;">Payment Failed</span></p>
+</div>
+
+<div class="divider"></div>
+
+<p><strong style="color:#1A1A2E;">What to do next</strong></p>
+<p>
+  If you believe this is an error, please <strong>contact us</strong> with your transfer receipt
+  and we will look into it right away. If you'd like to try again, simply place a new order.
+</p>
+
+<div class="center" style="margin:28px 0">
+  <a href="{{ shop_url }}" class="btn">Shop Again</a>
+</div>
+
+<div class="divider"></div>
+
+<p class="small center">
+  Need help? Reply to this email or
+  <a href="https://wa.me/2347019908205" style="color:#8A4FB1;">chat with us on WhatsApp</a>.
+</p>
+
+{% endblock %}

@@ -32,7 +32,7 @@ class OrderCreateSerializer(serializers.Serializer):
     delivery_notes   = serializers.CharField(required=False, allow_blank=True)
 
     # Payment
-    payment_method = serializers.ChoiceField(choices=['card', 'transfer', 'ussd', 'pod', 'manual_transfer'])
+    payment_method = serializers.ChoiceField(choices=['card', 'transfer', 'ussd', 'pod', 'manual_transfer', 'pickup'])
 
     # Discount
     discount_code = serializers.CharField(required=False, allow_blank=True, default='')

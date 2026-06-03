@@ -42,7 +42,12 @@
 
       <!-- Header -->
       <div class="header">
-        <div class="logo">Soft<span>Lifee</span>.</div>
+        {% if brand_logo_url %}
+          <img src="{{ brand_logo_url }}" alt="Soft Lifee by Becky"
+               style="max-height:70px;max-width:220px;object-fit:contain;display:block;margin:0 auto 10px;" />
+        {% else %}
+          <div class="logo">Soft<span>Lifee</span>.</div>
+        {% endif %}
         <div class="tagline">Luxury Goods &middot; Lifestyle</div>
       </div>
 

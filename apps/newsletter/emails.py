@@ -15,7 +15,7 @@ def send_welcome_newsletter_email(subscriber):
     )
 
 
-def send_newsletter_blast(subscribers, subject, heading, body_html, cta_label, cta_url):
+def send_newsletter_blast(subscribers, subject, heading, body_html, cta_label, cta_url, product_image_url=''):
     """Send a newsletter to a queryset of active subscribers."""
     for sub in subscribers:
         send_email(
@@ -28,6 +28,7 @@ def send_newsletter_blast(subscribers, subject, heading, body_html, cta_label, c
                 'body_html': body_html,
                 'cta_label': cta_label,
                 'cta_url': cta_url,
+                'product_image_url': product_image_url,
                 'unsubscribe_url': f"{settings.FRONTEND_URL}/unsubscribe?token={sub.unsubscribe_token}",
             },
         )

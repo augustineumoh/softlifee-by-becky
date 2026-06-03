@@ -22,9 +22,10 @@ def send_email_async(subject: str, to_email: str, template: str, context: dict):
 
 def send_email(subject: str, to_email: str, template: str, context: dict):
     """Generic email sender using HTML templates."""
-    context.setdefault('brand_name',  'Soft Lifee by Becky')
-    context.setdefault('brand_color', '#8A4FB1')
-    context.setdefault('frontend_url', settings.FRONTEND_URL)
+    context.setdefault('brand_name',     'Soft Lifee by Becky')
+    context.setdefault('brand_color',    '#8A4FB1')
+    context.setdefault('frontend_url',   settings.FRONTEND_URL)
+    context.setdefault('brand_logo_url', getattr(settings, 'BRAND_LOGO_URL', ''))
 
     html_content  = render_to_string(f'emails/{template}.html', context)
     text_content  = strip_tags(html_content)
@@ -109,6 +110,19 @@ def send_transfer_received_email(order):
             'order':     order,
             'items':     list(order.items.all()),
             'admin_url': f"{settings.BACKEND_URL}/softlifee-admin/orders/order/{order.id}/change/",
+        }
+    )
+
+
+def send_payment_failed_email(order):
+    send_email_async(
+        subject  = f'Payment Failed — {order.order_number}',
+        to_email = order.customer_email,
+        template = 'payment_failed',
+        context  = {
+            'order':     order,
+            'items':     list(order.items.all()),
+            'shop_url':  f"{settings.FRONTEND_URL}/shop",
         }
     )
 

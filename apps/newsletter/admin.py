@@ -34,6 +34,7 @@ class NewsletterSubscriberAdmin(ModelAdmin):
             body_html = request.POST.get('body_html', '').strip()
             cta_label = request.POST.get('cta_label', 'Shop Now').strip()
             cta_url = request.POST.get('cta_url', '').strip()
+            product_image_url = request.POST.get('product_image_url', '').strip()
 
             if not subject or not heading or not body_html:
                 messages.error(request, 'Subject, heading, and body are required.')
@@ -47,7 +48,7 @@ class NewsletterSubscriberAdmin(ModelAdmin):
                 return redirect('softlifee_admin:send_newsletter')
 
             try:
-                send_newsletter_blast(subscribers, subject, heading, body_html, cta_label, cta_url)
+                send_newsletter_blast(subscribers, subject, heading, body_html, cta_label, cta_url, product_image_url)
                 messages.success(request, f'Newsletter sent to {count} subscriber(s).')
             except Exception as e:
                 messages.error(request, f'Error sending newsletter: {e}')

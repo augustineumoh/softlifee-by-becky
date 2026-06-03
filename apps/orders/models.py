@@ -19,6 +19,7 @@ class Order(models.Model):
         ('ussd',             'USSD'),
         ('pod',              'Pay on Delivery'),
         ('manual_transfer',  'Direct Bank Transfer'),
+        ('pickup',           'Self Pickup'),
     ]
 
     PAYMENT_STATUS_CHOICES = [

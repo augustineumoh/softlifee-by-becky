@@ -135,8 +135,11 @@ class CreateOrderView(APIView):
                 except Exception:
                     pass  # Ignore discount errors — don't block checkout
 
-            delivery_fee = get_delivery_fee(data['delivery_state'], data['delivery_city'], subtotal - discount_amount)
-            total        = subtotal - discount_amount + delivery_fee
+            if payment_method == 'pickup':
+                delivery_fee = Decimal('0')
+            else:
+                delivery_fee = get_delivery_fee(data['delivery_state'], data['delivery_city'], subtotal - discount_amount)
+            total = subtotal - discount_amount + delivery_fee
 
             # Build order kwargs — only include discount fields if columns exist
             order_kwargs = dict(

@@ -3,6 +3,13 @@
 <h1>{{ heading }}</h1>
 <p>Hi {{ name }},</p>
 
+{% if product_image_url %}
+<div style="text-align:center;margin:20px 0;">
+  <img src="{{ product_image_url }}" alt="{{ heading }}"
+       style="max-width:100%;max-height:380px;border-radius:12px;object-fit:cover;border:1px solid rgba(138,79,177,0.12);" />
+</div>
+{% endif %}
+
 {{ body_html|safe }}
 
 {% if cta_label and cta_url %}

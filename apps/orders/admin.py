@@ -48,6 +48,15 @@ class OrderAdmin(admin.ModelAdmin):
                 pass
             return
 
+        # Admin marks payment as failed → notify customer
+        if 'payment_status' in form.changed_data and obj.payment_status == 'failed':
+            try:
+                from apps.core.emails import send_payment_failed_email
+                send_payment_failed_email(obj)
+            except Exception:
+                pass
+            return
+
         # Other status changes → send status-specific email
         if 'status' in form.changed_data and obj.status in (
             'processing', 'shipped', 'delivered', 'cancelled'
