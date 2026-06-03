@@ -54,10 +54,16 @@
         style="max-height:160px;max-width:260px;border-radius:8px;border:1px solid #d8b4fe;object-fit:cover" />
       <p id="product_preview_name" style="font-size:13px;font-weight:bold;color:#6d28d9;margin-top:6px"></p>
     </div>
-  </div>
 
-  <!-- Hidden field that actually gets submitted -->
-  <input type="hidden" id="product_image_url" name="product_image_url" value="">
+    <div style="margin-top:12px">
+      <label for="product_image_url" style="display:block;font-size:12px;color:#666;margin-bottom:4px">
+        Or paste an image URL directly:
+      </label>
+      <input type="url" id="product_image_url" name="product_image_url" value=""
+        placeholder="https://res.cloudinary.com/... (auto-filled when you pick a product above)"
+        style="width:100%;padding:8px 10px;border:1px solid #c4b5fd;border-radius:6px;font-size:13px;color:#333">
+    </div>
+  </div>
 
   <div style="margin-bottom:20px">
     <label for="body_html" style="display:block;font-weight:bold;margin-bottom:6px">
