@@ -44,7 +44,7 @@ class NewsletterSubscriberAdmin(ModelAdmin):
             if not product_image_url and '<img' not in body_html:
                 from apps.products.models import Product
                 from django.conf import settings as django_settings
-                # Normalise &amp; so HTML-encoded bodies still match product names
+                cloud_name = django_settings.CLOUDINARY_STORAGE.get('CLOUD_NAME', '')
                 body_lower = body_html.lower().replace('&amp;', '&')
                 products_qs = (
                     Product.objects.filter(is_active=True)
@@ -57,18 +57,13 @@ class NewsletterSubscriberAdmin(ModelAdmin):
                             product.images.filter(is_primary=True).first()
                             or product.images.first()
                         )
-                        if primary:
-                            try:
-                                product_image_url = primary.image.url
-                            except Exception:
-                                # Fallback: build Cloudinary URL directly
-                                cloud = getattr(django_settings, 'CLOUDINARY_CLOUD_NAME', '')
-                                public_id = str(primary.image)
-                                if cloud and public_id:
-                                    product_image_url = (
-                                        f'https://res.cloudinary.com/{cloud}'
-                                        f'/image/upload/{public_id}'
-                                    )
+                        if primary and cloud_name:
+                            public_id = str(primary.image)
+                            if public_id:
+                                product_image_url = (
+                                    f'https://res.cloudinary.com/{cloud_name}'
+                                    f'/image/upload/{public_id}'
+                                )
                         break
 
             subscribers = NewsletterSubscriber.objects.filter(is_active=True)
@@ -92,17 +87,18 @@ class NewsletterSubscriberAdmin(ModelAdmin):
         active_count = NewsletterSubscriber.objects.filter(is_active=True).count()
 
         from apps.products.models import Product
+        from django.conf import settings as django_settings
         import json
+        cloud_name = django_settings.CLOUDINARY_STORAGE.get('CLOUD_NAME', '')
         products_qs = Product.objects.filter(is_active=True).prefetch_related('images').order_by('name')
         products_data = []
         for p in products_qs:
             primary = p.images.filter(is_primary=True).first() or p.images.first()
             img_url = ''
-            if primary:
-                try:
-                    img_url = primary.image.url
-                except Exception:
-                    pass
+            if primary and cloud_name:
+                public_id = str(primary.image)
+                if public_id:
+                    img_url = f'https://res.cloudinary.com/{cloud_name}/image/upload/{public_id}'
             products_data.append({'id': p.id, 'name': p.name, 'slug': p.slug, 'image_url': img_url})
 
         context = {
