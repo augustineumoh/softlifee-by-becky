@@ -84,6 +84,7 @@ def send_order_status_email(order):
         template = template,
         context  = {
             'order':     order,
+            'items':     list(order.items.all()),
             'track_url': f"{settings.FRONTEND_URL}/account/orders",
         }
     )
@@ -128,12 +129,14 @@ def send_payment_failed_email(order):
 
 
 def send_low_stock_alert(product):
+    primary_img = product.images.filter(is_primary=True).first() or product.images.first()
     send_email(
         subject  = f'⚠️ Low Stock Alert — {product.name}',
         to_email = settings.ADMIN_EMAIL,
         template = 'low_stock',
         context  = {
-            'product':   product,
-            'admin_url': f"{settings.BACKEND_URL}/admin/products/product/{product.id}/change/",
+            'product':           product,
+            'product_image_url': str(primary_img.image) if primary_img else '',
+            'admin_url':         f"{settings.BACKEND_URL}/admin/products/product/{product.id}/change/",
         }
     )

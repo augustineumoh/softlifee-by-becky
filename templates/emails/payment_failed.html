@@ -17,6 +17,33 @@
   <p><strong>Status:</strong> <span style="color:#BE123C;font-weight:700;">Payment Failed</span></p>
 </div>
 
+{% if items %}
+<div class="divider"></div>
+<p><strong style="color:#1A1A2E;">Items in This Order</strong></p>
+<table width="100%" cellpadding="0" cellspacing="0">
+  {% for item in items %}
+  <tr>
+    <td style="padding:10px 0; border-bottom:1px solid rgba(138,79,177,0.07);">
+      <table cellpadding="0" cellspacing="0"><tr>
+        <td style="width:64px; padding-right:14px; vertical-align:top;">
+          {% if item.product_image %}
+          <img src="{{ item.product_image }}" width="60" height="60" alt="{{ item.product_name }}"
+               style="display:block; border-radius:8px; object-fit:cover; border:1px solid rgba(138,79,177,0.12);" />
+          {% endif %}
+        </td>
+        <td style="vertical-align:top;">
+          <div style="font-weight:600; color:#1A1A2E;">{{ item.product_name }}</div>
+          {% if item.color_variant %}<div style="font-size:12px; color:#8A4FB1;">{{ item.color_variant }}</div>{% endif %}
+          {% if item.size_variant %}<div style="font-size:12px; color:#8A4FB1;">Size: {{ item.size_variant }}</div>{% endif %}
+          <div style="font-size:12px; color:rgba(26,26,46,0.5); margin-top:2px;">Qty: {{ item.quantity }}</div>
+        </td>
+      </tr></table>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
 <div class="divider"></div>
 
 <p><strong style="color:#1A1A2E;">What to do next</strong></p>
