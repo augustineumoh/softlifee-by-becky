@@ -271,6 +271,21 @@
       {% endif %}
     </div>
   </div>
+  <div class="metric-card">
+    <div class="metric-label">Avg. Order Value</div>
+    <div class="metric-value gold">{{ aov }}</div>
+    <div class="metric-sub">Per paid order</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Cart Abandonment</div>
+    <div class="metric-value {% if abandonment_rate > 50 %}red{% elif abandonment_rate > 20 %}gold{% else %}green{% endif %}">{{ abandonment_rate }}%</div>
+    <div class="metric-sub">{{ carts_with_items }} carts with items</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Newsletter</div>
+    <div class="metric-value purple">{{ newsletter_active }}</div>
+    <div class="metric-sub">{{ newsletter_total }} total subscribers</div>
+  </div>
 </div>
 
 <!-- ── CHARTS ROW ── -->
@@ -293,6 +308,24 @@
     <div class="chart-title">Orders by Status</div>
     <div class="chart-subtitle">Breakdown of all orders</div>
     <canvas id="statusChart" height="180"></canvas>
+  </div>
+</div>
+
+<!-- ── PAYMENT METHODS + GEOGRAPHY ── -->
+<div class="dash-row" style="margin-bottom:24px;">
+
+  <!-- Payment Method Breakdown -->
+  <div class="chart-card">
+    <div class="chart-title">Payment Methods</div>
+    <div class="chart-subtitle">Orders by payment method (paid only)</div>
+    <canvas id="paymentChart" height="140"></canvas>
+  </div>
+
+  <!-- Orders by State -->
+  <div class="chart-card">
+    <div class="chart-title">Orders by State</div>
+    <div class="chart-subtitle">Top delivery locations</div>
+    <canvas id="geoChart" height="140"></canvas>
   </div>
 </div>
 
@@ -505,6 +538,53 @@ new Chart(revenueCtx, {
     }
   }
 );
+
+// Payment method doughnut chart
+const paymentCtx = document.getElementById('paymentChart').getContext('2d');
+new Chart(paymentCtx, {
+  type: 'doughnut',
+  data: {
+    labels:   {{ payment_labels|safe }},
+    datasets: [{
+      data:            {{ payment_counts|safe }},
+      backgroundColor: ['#8A4FB1','#D4AF37','#16A34A','#3B82F6','#D97706','#BE123C'],
+      borderWidth:     2,
+      borderColor:     '#FFFFFF',
+      hoverOffset:     4,
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '60%',
+    plugins: {
+      legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10, boxWidth: 12 } }
+    }
+  }
+});
+
+// Geography bar chart
+const geoCtx = document.getElementById('geoChart').getContext('2d');
+new Chart(geoCtx, {
+  type: 'bar',
+  data: {
+    labels:   {{ geo_labels|safe }},
+    datasets: [{
+      label:           'Orders',
+      data:             {{ geo_counts|safe }},
+      backgroundColor:  'rgba(138,79,177,0.75)',
+      borderRadius:     6,
+    }]
+  },
+  options: {
+    responsive: true,
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, ticks: { font: { size: 11 }, stepSize: 1 }, grid: { color: 'rgba(138,79,177,0.06)' } },
+      y: { ticks: { font: { size: 11 } }, grid: { display: false } }
+    }
+  }
+});
 
 // Order status donut chart
 const statusCtx = document.getElementById('statusChart').getContext('2d');

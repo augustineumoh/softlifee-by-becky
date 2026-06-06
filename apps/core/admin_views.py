@@ -114,6 +114,42 @@ class AdminDashboardView(View):
             stock_count__lte=5, is_active=True
         ).order_by('stock_count')[:6]
 
+        # ── Average Order Value ───────────────────────────────────────────────
+        paid_count = paid.count()
+        aov = total_revenue / paid_count if paid_count else 0
+
+        # ── Cart abandonment ──────────────────────────────────────────────────
+        from apps.cart.models import Cart
+        carts_with_items = Cart.objects.filter(items__isnull=False).distinct().count()
+        abandonment_rate = round(
+            max(0, carts_with_items - paid_count) / carts_with_items * 100, 1
+        ) if carts_with_items else 0
+
+        # ── Newsletter ────────────────────────────────────────────────────────
+        from apps.newsletter.models import NewsletterSubscriber
+        newsletter_total  = NewsletterSubscriber.objects.count()
+        newsletter_active = NewsletterSubscriber.objects.filter(is_active=True).count()
+
+        # ── Payment method breakdown ──────────────────────────────────────────
+        payment_data = (
+            paid
+            .values('payment_method')
+            .annotate(count=Count('id'), revenue=Sum('total'))
+            .order_by('-count')
+        )
+        payment_labels   = [p['payment_method'].replace('_', ' ').title() for p in payment_data]
+        payment_counts   = [p['count'] for p in payment_data]
+
+        # ── Geographic breakdown ──────────────────────────────────────────────
+        geo_data   = (
+            paid
+            .values('delivery_state')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:8]
+        )
+        geo_labels = [g['delivery_state'] or 'Unknown' for g in geo_data]
+        geo_counts = [g['count'] for g in geo_data]
+
         context = {
             # Metrics
             'total_revenue':        f'₦{total_revenue:,.0f}',
@@ -136,6 +172,19 @@ class AdminDashboardView(View):
             'status_labels':  json.dumps(status_labels),
             'status_counts':  json.dumps(status_counts),
             'donut_colors':   json.dumps(donut_colors),
+
+            # New KPI metrics
+            'aov':                f'₦{aov:,.0f}',
+            'abandonment_rate':   abandonment_rate,
+            'carts_with_items':   carts_with_items,
+            'newsletter_total':   newsletter_total,
+            'newsletter_active':  newsletter_active,
+
+            # New charts (JSON for Chart.js)
+            'payment_labels':     json.dumps(payment_labels),
+            'payment_counts':     json.dumps(payment_counts),
+            'geo_labels':         json.dumps(geo_labels),
+            'geo_counts':         json.dumps(geo_counts),
 
             # Tables
             'recent_orders':      recent_orders,
