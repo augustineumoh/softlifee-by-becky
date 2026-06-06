@@ -3,7 +3,9 @@ from . import views
 from .discount_views import ValidateDiscountCodeView
 from .analytics import (
     SalesSummaryView, RevenueChartView, TopProductsView,
-    OrderStatusBreakdownView, LowStockView, RecentOrdersView
+    OrderStatusBreakdownView, LowStockView, RecentOrdersView,
+    CartAbandonmentView, CustomerRetentionView, NewsletterStatsView,
+    PaymentMethodBreakdownView, GeographicBreakdownView, CustomerGrowthView,
 )
 from .return_views import (
     CreateReturnRequestView, MyReturnRequestsView, ReturnRequestDetailView,
@@ -35,10 +37,16 @@ urlpatterns = [
     path('returns/admin/<int:pk>/', AdminReturnUpdateView.as_view(),       name='admin-return-update'),
 
     # Analytics (admin only)
-    path('analytics/summary/',      SalesSummaryView.as_view(),            name='analytics-summary'),
-    path('analytics/revenue/',      RevenueChartView.as_view(),            name='analytics-revenue'),
-    path('analytics/top-products/', TopProductsView.as_view(),             name='analytics-top-products'),
-    path('analytics/order-status/', OrderStatusBreakdownView.as_view(),    name='analytics-order-status'),
-    path('analytics/low-stock/',    LowStockView.as_view(),                name='analytics-low-stock'),
-    path('analytics/recent-orders/',RecentOrdersView.as_view(),            name='analytics-recent-orders'),
+    path('analytics/summary/',          SalesSummaryView.as_view(),             name='analytics-summary'),
+    path('analytics/revenue/',          RevenueChartView.as_view(),             name='analytics-revenue'),
+    path('analytics/top-products/',     TopProductsView.as_view(),              name='analytics-top-products'),
+    path('analytics/order-status/',     OrderStatusBreakdownView.as_view(),     name='analytics-order-status'),
+    path('analytics/low-stock/',        LowStockView.as_view(),                 name='analytics-low-stock'),
+    path('analytics/recent-orders/',    RecentOrdersView.as_view(),             name='analytics-recent-orders'),
+    path('analytics/cart-abandonment/', CartAbandonmentView.as_view(),          name='analytics-cart-abandonment'),
+    path('analytics/customer-retention/', CustomerRetentionView.as_view(),      name='analytics-customer-retention'),
+    path('analytics/newsletter/',       NewsletterStatsView.as_view(),          name='analytics-newsletter'),
+    path('analytics/payment-methods/',  PaymentMethodBreakdownView.as_view(),   name='analytics-payment-methods'),
+    path('analytics/geography/',        GeographicBreakdownView.as_view(),      name='analytics-geography'),
+    path('analytics/customer-growth/',  CustomerGrowthView.as_view(),           name='analytics-customer-growth'),
 ]
