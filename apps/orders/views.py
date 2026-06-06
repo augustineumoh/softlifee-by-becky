@@ -174,6 +174,13 @@ class CreateOrderView(APIView):
             for item_data in order_items_data:
                 OrderItem.objects.create(order=order, **item_data)
 
+            # Mark the user's active cart session as converted
+            if request.user.is_authenticated:
+                from apps.cart.models import CartSession
+                CartSession.objects.filter(
+                    user=request.user, converted=False
+                ).update(converted=True, order=order, converted_at=timezone.now())
+
             if applied_code:
                 try:
                     applied_code.apply(

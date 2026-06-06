@@ -119,11 +119,13 @@ class AdminDashboardView(View):
         aov = total_revenue / paid_count if paid_count else 0
 
         # ── Cart abandonment ──────────────────────────────────────────────────
-        from apps.cart.models import Cart
-        carts_with_items = Cart.objects.filter(items__isnull=False).distinct().count()
-        abandonment_rate = round(
-            max(0, carts_with_items - paid_count) / carts_with_items * 100, 1
-        ) if carts_with_items else 0
+        from apps.cart.models import CartSession
+        _cutoff = now - timedelta(hours=24)
+        _converted = CartSession.objects.filter(converted=True).count()
+        _abandoned = CartSession.objects.filter(converted=False, last_activity__lt=_cutoff).count()
+        _closed    = _converted + _abandoned
+        abandonment_rate = round(_abandoned / _closed * 100, 1) if _closed else 0
+        carts_with_items = CartSession.objects.filter(converted=False, last_activity__gte=_cutoff).count()
 
         # ── Newsletter ────────────────────────────────────────────────────────
         from apps.newsletter.models import NewsletterSubscriber

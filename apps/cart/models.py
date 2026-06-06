@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 
 class Cart(models.Model):
@@ -40,3 +41,29 @@ class CartItem(models.Model):
     @property
     def subtotal(self):
         return self.product.active_price * self.quantity
+
+
+class CartSession(models.Model):
+    """
+    One row per shopping window per user.
+    Opens when the user adds their first item (or first item after converting).
+    Stays open until they place an order (converted=True) or go idle for 24h (abandoned).
+    """
+    user          = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cart_sessions'
+    )
+    started_at    = models.DateTimeField(auto_now_add=True)
+    last_activity = models.DateTimeField(default=timezone.now, db_index=True)
+    converted     = models.BooleanField(default=False, db_index=True)
+    order         = models.ForeignKey(
+        'orders.Order', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='cart_sessions'
+    )
+    converted_at  = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-started_at']
+
+    def __str__(self):
+        state = 'converted' if self.converted else 'open'
+        return f'CartSession({self.user.email}, {state}, {self.started_at:%Y-%m-%d})'

@@ -2,9 +2,10 @@ from rest_framework import status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from apps.products.models import Product
-from .models import Cart, CartItem
+from .models import Cart, CartItem, CartSession
 from .serializers import (
     CartSerializer, CartItemSerializer,
     AddToCartSerializer, UpdateCartItemSerializer,
@@ -14,6 +15,13 @@ from .serializers import (
 def _get_or_create_cart(user):
     cart, _ = Cart.objects.get_or_create(user=user)
     return cart
+
+
+def _touch_session(user):
+    """Open a new CartSession if none is active, otherwise refresh last_activity."""
+    session, created = CartSession.objects.get_or_create(user=user, converted=False)
+    if not created:
+        CartSession.objects.filter(pk=session.pk).update(last_activity=timezone.now())
 
 
 class CartView(APIView):
@@ -27,6 +35,7 @@ class CartView(APIView):
         cart = _get_or_create_cart(request.user)
         cart.items.all().delete()
         cart.save()
+        _touch_session(request.user)
         return Response({'message': 'Cart cleared.'})
 
 
@@ -58,6 +67,7 @@ class AddToCartView(APIView):
             item.save(update_fields=['quantity', 'updated_at'])
 
         cart.save()
+        _touch_session(request.user)
         return Response(
             CartItemSerializer(item, context={'request': request}).data,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
@@ -77,6 +87,7 @@ class CartItemView(APIView):
         item.quantity = serializer.validated_data['quantity']
         item.save(update_fields=['quantity', 'updated_at'])
         cart.save()
+        _touch_session(request.user)
         return Response(CartItemSerializer(item, context={'request': request}).data)
 
     def delete(self, request, item_id):
@@ -84,4 +95,5 @@ class CartItemView(APIView):
         item = get_object_or_404(CartItem, id=item_id, cart=cart)
         item.delete()
         cart.save()
+        _touch_session(request.user)
         return Response({'message': 'Item removed.'}, status=status.HTTP_204_NO_CONTENT)

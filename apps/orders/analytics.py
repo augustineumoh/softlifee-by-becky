@@ -139,25 +139,44 @@ class RecentOrdersView(APIView):
         return Response(OrderSerializer(orders, many=True).data)
 
 
+ABANDON_HOURS = 24
+
+
 class CartAbandonmentView(APIView):
-    """Cart abandonment rate: carts with items vs paid orders."""
+    """
+    Real cart abandonment rate using CartSession funnel data.
+
+    A session is:
+      - active    → not converted AND last_activity within the last 24 h
+      - abandoned → not converted AND last_activity older than 24 h
+      - converted → order was placed
+
+    Rate = abandoned / (abandoned + converted)  [excludes currently-active sessions]
+    """
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        carts_with_items = Cart.objects.filter(items__isnull=False).distinct().count()
-        paid_orders      = Order.objects.filter(payment_status='paid').count()
+        from apps.cart.models import CartSession
 
-        if carts_with_items > 0:
-            abandonment_rate = round(
-                max(0, carts_with_items - paid_orders) / carts_with_items * 100, 2
-            )
-        else:
-            abandonment_rate = 0
+        cutoff = timezone.now() - timedelta(hours=ABANDON_HOURS)
+
+        total     = CartSession.objects.count()
+        converted = CartSession.objects.filter(converted=True).count()
+        abandoned = CartSession.objects.filter(converted=False, last_activity__lt=cutoff).count()
+        active    = CartSession.objects.filter(converted=False, last_activity__gte=cutoff).count()
+
+        closed = abandoned + converted
+        abandonment_rate = round(abandoned / closed * 100, 2) if closed > 0 else 0
+        conversion_rate  = round(converted / closed * 100, 2) if closed > 0 else 0
 
         return Response({
-            'carts_with_items':   carts_with_items,
-            'completed_orders':   paid_orders,
-            'abandonment_rate':   abandonment_rate,
+            'total_sessions':    total,
+            'converted':         converted,
+            'abandoned':         abandoned,
+            'active':            active,
+            'abandonment_rate':  abandonment_rate,
+            'conversion_rate':   conversion_rate,
+            'abandon_threshold_hours': ABANDON_HOURS,
         })
 
 
