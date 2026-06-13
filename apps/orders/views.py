@@ -135,7 +135,8 @@ class CreateOrderView(APIView):
                 except Exception:
                     pass  # Ignore discount errors — don't block checkout
 
-            if payment_method == 'pickup':
+            is_pickup = data['delivery_address'] == 'Self Pickup'
+            if is_pickup:
                 delivery_fee = Decimal('0')
             else:
                 delivery_fee = get_delivery_fee(data['delivery_state'], data['delivery_city'], subtotal - discount_amount)
