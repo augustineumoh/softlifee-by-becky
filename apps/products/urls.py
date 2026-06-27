@@ -3,6 +3,7 @@ from . import views, admin_views
 
 urlpatterns = [
     # ── Public ────────────────────────────────────────────────────────────────
+    path('facebook-catalog/',    views.FacebookCatalogFeedView.as_view(), name='facebook-catalog-feed'),
     path('categories/',          views.CategoryListView.as_view(),       name='category-list'),
     path('search/',              views.SearchAutocompleteView.as_view(),  name='search-autocomplete'),
     path('wishlist/',            views.WishlistView.as_view(),            name='wishlist'),

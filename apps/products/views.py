@@ -5,6 +5,8 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from django.http import JsonResponse
+from django.conf import settings
 
 from .models import (
     Category, Product, Wishlist, RecentlyViewed
@@ -13,6 +15,72 @@ from .serializers import (
     CategorySerializer, ProductListSerializer, ProductDetailSerializer,
     WishlistSerializer, RecentlyViewedSerializer
 )
+from .serializers import _cloudinary_url
+
+
+# ── Facebook Product Catalog Feed ─────────────────────────────────────────────
+class FacebookCatalogFeedView(APIView):
+    """
+    Returns all active products in Facebook's catalog JSON feed format.
+    Facebook fetches this URL automatically to keep the product catalog in sync,
+    so the client never has to upload products manually.
+
+    Feed URL: /api/v1/products/facebook-catalog/
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, _):
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://softlifee.com').rstrip('/')
+
+        products = (
+            Product.objects
+            .filter(is_active=True)
+            .select_related('category')
+            .prefetch_related('images', 'color_variants')
+        )
+
+        items = []
+        for product in products:
+            primary = next(
+                (img for img in product.images.all() if img.is_primary),
+                product.images.first(),
+            )
+            image_url = _cloudinary_url(str(primary.image)) if primary else ''
+
+            color_variants = list(product.color_variants.all())
+
+            if color_variants:
+                for variant in color_variants:
+                    variant_image = _cloudinary_url(str(variant.image)) if variant.image else image_url
+                    items.append({
+                        'id':           f'{product.id}-{variant.id}',
+                        'retailer_id':  f'{product.id}-{variant.id}',
+                        'title':        f'{product.name} — {variant.label}',
+                        'description':  product.description[:5000],
+                        'availability': 'in stock' if variant.in_stock else 'out of stock',
+                        'condition':    'new',
+                        'price':        f'{int(product.active_price)} NGN',
+                        'link':         f'{frontend_url}/product/{product.slug}',
+                        'image_link':   variant_image or image_url,
+                        'brand':        'Soft Lifee by Becky',
+                        'category':     product.category.name,
+                    })
+            else:
+                items.append({
+                    'id':           str(product.id),
+                    'retailer_id':  str(product.id),
+                    'title':        product.name,
+                    'description':  product.description[:5000],
+                    'availability': 'in stock' if product.in_stock else 'out of stock',
+                    'condition':    'new',
+                    'price':        f'{int(product.active_price)} NGN',
+                    'link':         f'{frontend_url}/product/{product.slug}',
+                    'image_link':   image_url,
+                    'brand':        'Soft Lifee by Becky',
+                    'category':     product.category.name,
+                })
+
+        return JsonResponse({'data': items})
 
 
 # ── Categories ────────────────────────────────────────────────────────────────
