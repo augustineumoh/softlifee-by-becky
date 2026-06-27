@@ -5,7 +5,9 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
-from django.http import JsonResponse
+import csv
+import io
+from django.http import HttpResponse
 from django.conf import settings
 
 from .models import (
@@ -21,9 +23,8 @@ from .serializers import _cloudinary_url
 # ── Facebook Product Catalog Feed ─────────────────────────────────────────────
 class FacebookCatalogFeedView(APIView):
     """
-    Returns all active products in Facebook's catalog JSON feed format.
-    Facebook fetches this URL automatically to keep the product catalog in sync,
-    so the client never has to upload products manually.
+    Returns all active products as a CSV feed Facebook can fetch on a schedule.
+    Supported format: CSV (Facebook also accepts TSV and RSS/ATOM XML).
 
     Feed URL: /api/v1/products/facebook-catalog/
     """
@@ -39,46 +40,57 @@ class FacebookCatalogFeedView(APIView):
             .prefetch_related('images', 'color_variants')
         )
 
-        items = []
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow([
+            'id', 'title', 'description', 'availability', 'condition',
+            'price', 'link', 'image_link', 'brand', 'google_product_category',
+        ])
+
         for product in products:
             primary = next(
                 (img for img in product.images.all() if img.is_primary),
                 product.images.first(),
             )
             image_url = _cloudinary_url(str(primary.image)) if primary else ''
+            price     = f'{float(product.active_price):.2f} NGN'
+            link      = f'{frontend_url}/product/{product.slug}'
+            desc      = product.description[:5000].replace('\r\n', ' ').replace('\n', ' ')
 
             color_variants = list(product.color_variants.all())
 
             if color_variants:
                 for variant in color_variants:
                     variant_image = _cloudinary_url(str(variant.image)) if variant.image else image_url
-                    items.append({
-                        'id':           f'{product.id}-{variant.id}',
-                        'title':        f'{product.name} — {variant.label}',
-                        'description':  product.description[:5000],
-                        'availability': 'in stock' if variant.in_stock else 'out of stock',
-                        'condition':    'new',
-                        'price':        f'{float(product.active_price):.2f} NGN',
-                        'link':         f'{frontend_url}/product/{product.slug}',
-                        'image_link':   variant_image or image_url,
-                        'brand':        'Soft Lifee by Becky',
-                        'category':     product.category.name,
-                    })
+                    writer.writerow([
+                        f'{product.id}-{variant.id}',
+                        f'{product.name} - {variant.label}',
+                        desc,
+                        'in stock' if variant.in_stock else 'out of stock',
+                        'new',
+                        price,
+                        link,
+                        variant_image or image_url,
+                        'Soft Lifee by Becky',
+                        product.category.name,
+                    ])
             else:
-                items.append({
-                    'id':           str(product.id),
-                    'title':        product.name,
-                    'description':  product.description[:5000],
-                    'availability': 'in stock' if product.in_stock else 'out of stock',
-                    'condition':    'new',
-                    'price':        f'{int(product.active_price)} NGN',
-                    'link':         f'{frontend_url}/product/{product.slug}',
-                    'image_link':   image_url,
-                    'brand':        'Soft Lifee by Becky',
-                    'category':     product.category.name,
-                })
+                writer.writerow([
+                    str(product.id),
+                    product.name,
+                    desc,
+                    'in stock' if product.in_stock else 'out of stock',
+                    'new',
+                    price,
+                    link,
+                    image_url,
+                    'Soft Lifee by Becky',
+                    product.category.name,
+                ])
 
-        return JsonResponse({'data': items})
+        response = HttpResponse(buf.getvalue(), content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'inline; filename="facebook_catalog.csv"'
+        return response
 
 
 # ── Categories ────────────────────────────────────────────────────────────────
