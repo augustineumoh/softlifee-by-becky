@@ -54,12 +54,11 @@ class FacebookCatalogFeedView(APIView):
                     variant_image = _cloudinary_url(str(variant.image)) if variant.image else image_url
                     items.append({
                         'id':           f'{product.id}-{variant.id}',
-                        'retailer_id':  f'{product.id}-{variant.id}',
                         'title':        f'{product.name} — {variant.label}',
                         'description':  product.description[:5000],
                         'availability': 'in stock' if variant.in_stock else 'out of stock',
                         'condition':    'new',
-                        'price':        f'{int(product.active_price)} NGN',
+                        'price':        f'{float(product.active_price):.2f} NGN',
                         'link':         f'{frontend_url}/product/{product.slug}',
                         'image_link':   variant_image or image_url,
                         'brand':        'Soft Lifee by Becky',
@@ -68,7 +67,6 @@ class FacebookCatalogFeedView(APIView):
             else:
                 items.append({
                     'id':           str(product.id),
-                    'retailer_id':  str(product.id),
                     'title':        product.name,
                     'description':  product.description[:5000],
                     'availability': 'in stock' if product.in_stock else 'out of stock',
